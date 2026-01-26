@@ -18,12 +18,23 @@ class $AssetsImagesGen {
   AssetGenImage get dashboard =>
       const AssetGenImage('assets/images/dashboard.png');
 
+  /// File path: assets/images/dissatisfied.png
+  AssetGenImage get dissatisfied =>
+      const AssetGenImage('assets/images/dissatisfied.png');
+
   /// File path: assets/images/journal.png
   AssetGenImage get journal => const AssetGenImage('assets/images/journal.png');
+
+  /// File path: assets/images/neutral.png
+  AssetGenImage get neutral => const AssetGenImage('assets/images/neutral.png');
 
   /// File path: assets/images/routines.png
   AssetGenImage get routines =>
       const AssetGenImage('assets/images/routines.png');
+
+  /// File path: assets/images/satisfied.png
+  AssetGenImage get satisfied =>
+      const AssetGenImage('assets/images/satisfied.png');
 
   /// File path: assets/images/settings.png
   AssetGenImage get settings =>
@@ -33,13 +44,26 @@ class $AssetsImagesGen {
   AssetGenImage get suppliments =>
       const AssetGenImage('assets/images/suppliments.png');
 
+  /// File path: assets/images/very_dissatified.png
+  AssetGenImage get veryDissatified =>
+      const AssetGenImage('assets/images/very_dissatified.png');
+
+  /// File path: assets/images/verysatisfied.png
+  AssetGenImage get verysatisfied =>
+      const AssetGenImage('assets/images/verysatisfied.png');
+
   /// List of all assets
   List<AssetGenImage> get values => [
     dashboard,
+    dissatisfied,
     journal,
+    neutral,
     routines,
+    satisfied,
     settings,
     suppliments,
+    veryDissatified,
+    verysatisfied,
   ];
 }
 

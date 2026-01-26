@@ -49,11 +49,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       initialPage: (selectedDate.year - _startYear) + (_infiniteOffset * 30),
     );
     _monthPageCtrl = PageController(
-      viewportFraction: 0.14,
+      viewportFraction: 0.12,
       initialPage: (selectedDate.month - 1) + (_infiniteOffset * 12),
     );
     _dayPageCtrl = PageController(
-      viewportFraction: 0.14,
+      viewportFraction: 0.095,
       initialPage: (selectedDate.day - 1) + (_infiniteOffset * 31),
     );
   }
@@ -166,11 +166,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           itemBuilder: (index, isSelected) {
             final day = (index % daysInMonth) + 1;
             // The ⭐ from your screenshot logic
-            final hasStar = {1, 2, 3, 4, 5, 7, 8, 9, 10, 11}.contains(day);
+            // final hasStar = {1, 2, 3, 4, 5, 7, 8, 9, 10, 11}.contains(day);
             return Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _pickerText(day.toString(), isSelected),
+                _pickerDay(day.toString(), isSelected),
                 Text(
                   isSelected ? '' : '⭐',
                   style: TextStyle(
@@ -232,7 +232,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           text,
           style: TextStyle(
             color: Colors.white,
-            fontSize: isSelected ? 16 : 14,
+            fontSize: isSelected ? 13 : 14,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          ),
+        ),
+        if (isSelected)
+          Container(
+            margin: const EdgeInsets.only(top: 2),
+            height: 1.5,
+            width: 14,
+            color: Colors.white,
+          ),
+      ],
+    );
+  }
+
+  Widget _pickerDay(String text, bool isSelected) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          text,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: isSelected ? 12 : 14,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
           ),
         ),
@@ -298,7 +321,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           InkWell(
             onTap: () {
               HapticFeedback.mediumImpact();
-              context.pushNamed(AppRoutes.dayCompleted.name);
+              context.pushNamed(AppRoutes.eodFlow.name);
             },
             child: Container(
               padding: const EdgeInsets.all(16),

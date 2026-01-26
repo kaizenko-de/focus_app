@@ -1,58 +1,63 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:focus/src/shared/providers/journey_provider.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:focus/constants/app_colors.dart';
 import 'package:focus/constants/app_sizes.dart';
-
-// --- Constants & Colors ---
-class AppColors {
-  static const Color bg = Color(0xFF0C0C0C); // Very dark background
-  static const Color bgCard = Color(0xFF1C1C1E); // Dark grey card
-  static const Color textPrimary = Colors.white;
-  static const Color textSecondary = Color(0xFF8E8E93);
-  static const Color accentBlue = Color(0xFF2E5CFF); // Bright blue
-  static const Color accentBlueDark = Color(
-    0xFF1A2240,
-  ); // Darker blue background for icons
-  static const Color starYellow = Color(0xFFFFD60A);
-  static const Color divider = Color(0xFF2C2C2E);
-  static const Color iconGreen = Color(0xFF30D158);
-}
-
-class Sizes {
-  static const double p4 = 4.0;
-  static const double p8 = 8.0;
-  static const double p12 = 12.0;
-  static const double p16 = 16.0;
-  static const double p20 = 20.0;
-  static const double p24 = 24.0;
-  static const double p32 = 32.0;
-}
 
 // --- Main Screen ---
 
-class JournalScreen extends StatefulWidget {
+class JournalScreen extends HookConsumerWidget {
   const JournalScreen({super.key});
 
   @override
-  State<JournalScreen> createState() => _JournalScreenState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final entries = ref.watch(journalProvider);
+    // Display the most recent entry (read-only)
+    final entry = entries.isNotEmpty ? entries.first : null;
+
+    if (entry == null) {
+      return Scaffold(
+        backgroundColor: AppColors.bg,
+        body: Center(
+          child: Text(
+            'No journal entries yet',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
+        ),
+      );
+    }
+
+    return _JournalDetailView(entry: entry);
+  }
 }
 
-class _JournalScreenState extends State<JournalScreen> {
-  int _selectedMood = 3; // Matching the screenshot (Happy face)
-  bool _expandedGratitude = false;
-  bool _expandedAffirmation = false;
-  bool _expandedNotes = false;
+class _JournalDetailView extends StatefulWidget {
+  final JournalEntry entry;
 
-  final String _gratitudeText = 'I am grateful for the focused work...';
-  final String _affirmationText = 'I am capable of handling whatever...';
-  final String _notesText = 'Felt a bit tired around 3 PM but...';
+  const _JournalDetailView({required this.entry});
 
-  final List<String> _wins = [
-    'Finished the Q4 proposal draft.',
-    'No sugar all day.',
-    'Called Mom.',
-  ];
+  @override
+  State<_JournalDetailView> createState() => _JournalDetailViewState();
+}
+
+class _JournalDetailViewState extends State<_JournalDetailView> {
+  late bool _expandedGratitude;
+  late bool _expandedAffirmation;
+  late bool _expandedNotes;
+
+  @override
+  void initState() {
+    super.initState();
+    _expandedGratitude = false;
+    _expandedAffirmation = false;
+    _expandedNotes = false;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final moods = ['😢', '☹️', '😐', '🙂', '😄'];
+    
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -64,11 +69,11 @@ class _JournalScreenState extends State<JournalScreen> {
             size: 20,
             color: AppColors.textSecondary,
           ),
-          onPressed: () => Navigator.pop(context), // Logic to go back
+          onPressed: () => Navigator.pop(context),
         ),
         titleSpacing: 0,
         title: Text(
-          'ARCHIVE ENTRY',
+          'JOURNAL ENTRY',
           style: TextStyle(
             color: AppColors.textSecondary,
             fontSize: 12,
@@ -84,84 +89,291 @@ class _JournalScreenState extends State<JournalScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: Sizes.p8),
-            // Header Title
-            const Text(
-              'Wednesday, Oct 26',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-                height: 1.1,
-              ),
-            ),
-            const SizedBox(height: Sizes.p8),
-            // Header Subtitle
-            const Text(
-              'Day 298 of 366 • 94% Consistency',
-              style: TextStyle(fontSize: 15, color: AppColors.textSecondary),
-            ),
+            _buildDateHeader(),
             const SizedBox(height: Sizes.p32),
-
-            // Reflection Header
             _buildSectionHeader('REFLECTION'),
             const SizedBox(height: Sizes.p24),
-
-            // Mood Section
-            _buildLabel('MOOD'),
-            const SizedBox(height: Sizes.p16),
-            _buildMoodSelector(),
+            _buildMoodDisplay(moods[widget.entry.moodIndex]),
             const SizedBox(height: Sizes.p24),
-
-            // Gratitude Section
-            _buildLabel('GRATITUDE'),
-            const SizedBox(height: Sizes.p12),
-            _buildCollapsibleCard(
-              text: _gratitudeText,
-              isExpanded: _expandedGratitude,
-              onTap: () =>
-                  setState(() => _expandedGratitude = !_expandedGratitude),
-            ),
+            _buildReadOnlyCard('GRATITUDE', widget.entry.gratitude),
             const SizedBox(height: Sizes.p24),
-
-            // Three Wins Section
-            _buildLabel('THREE WINS'),
-            const SizedBox(height: Sizes.p12),
-            _buildThreeWinsCard(),
+            _buildWinsDisplay(),
             const SizedBox(height: Sizes.p24),
-
-            // Affirmation Section
-            _buildLabel('AFFIRMATION'),
-            const SizedBox(height: Sizes.p12),
-            _buildCollapsibleCard(
-              text: _affirmationText,
-              isExpanded: _expandedAffirmation,
-              onTap: () =>
-                  setState(() => _expandedAffirmation = !_expandedAffirmation),
-            ),
+            _buildReadOnlyCard('AFFIRMATION', widget.entry.affirmation),
             const SizedBox(height: Sizes.p32),
-
-            // Tracking Header
             _buildSectionHeader('TRACKING'),
             const SizedBox(height: Sizes.p24),
-            _buildTrackingCards(),
+            _buildTrackingDisplay(),
             const SizedBox(height: Sizes.p24),
-
-            // Notes Section
-            _buildLabel('NOTES'),
-            const SizedBox(height: Sizes.p12),
-            _buildCollapsibleCard(
-              text: _notesText,
-              isExpanded: _expandedNotes,
-              onTap: () => setState(() => _expandedNotes = !_expandedNotes),
-            ),
-            gapH24,
+            if (widget.entry.notes.isNotEmpty)
+              _buildReadOnlyCard('NOTES', widget.entry.notes),
+            const SizedBox(height: Sizes.p32),
           ],
         ),
       ),
     );
   }
 
-  // --- Helper Widgets ---
+  Widget _buildDateHeader() {
+    final date = widget.entry.date;
+    final days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '${days[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}',
+          style: const TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+            height: 1.1,
+          ),
+        ),
+        const SizedBox(height: Sizes.p8),
+      ],
+    );
+  }
+
+  Widget _buildMoodDisplay(String mood) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        vertical: Sizes.p24,
+        horizontal: Sizes.p16,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.bgCard,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Center(
+        child: Column(
+          children: [
+            Text(
+              mood,
+              style: const TextStyle(fontSize: 56),
+            ),
+            const SizedBox(height: Sizes.p12),
+            const Text(
+              'Relaxed',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const Text(
+              'Evening Mood',
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReadOnlyCard(String label, String content) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 11,
+            letterSpacing: 1.2,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: Sizes.p12),
+        Container(
+          padding: const EdgeInsets.all(Sizes.p16),
+          decoration: BoxDecoration(
+            color: AppColors.bgCard,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Text(
+            content,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 15,
+              height: 1.6,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWinsDisplay() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'THREE WINS',
+          style: TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 11,
+            letterSpacing: 1.2,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: Sizes.p12),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.bgCard,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: widget.entry.wins.length,
+            separatorBuilder: (_, __) => const Divider(
+              color: AppColors.bgBorderSecondary,
+              height: 1,
+              thickness: 1,
+            ),
+            itemBuilder: (context, index) {
+              final win = widget.entry.wins[index];
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: Sizes.p16,
+                  vertical: Sizes.p16,
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: AppColors.bgBorderSecondary,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${index + 1}',
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: Sizes.p12),
+                    Expanded(
+                      child: Text(
+                        win.text,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                    if (win.isHighlighted)
+                      const Icon(
+                        Icons.star,
+                        color: AppColors.accent,
+                        size: 18,
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTrackingDisplay() {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(Sizes.p16),
+            decoration: BoxDecoration(
+              color: AppColors.bgCard,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'ROUTINES',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: Sizes.p12),
+                Text(
+                  widget.entry.routineIds.length.toString(),
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Text(
+                  'completed',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: Sizes.p12),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(Sizes.p16),
+            decoration: BoxDecoration(
+              color: AppColors.bgCard,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'SUPPLEMENTS',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: Sizes.p12),
+                Text(
+                  widget.entry.supplementIds.length.toString(),
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const Text(
+                  'taken',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _buildSectionHeader(String title) {
     return Row(
@@ -176,295 +388,13 @@ class _JournalScreenState extends State<JournalScreen> {
           ),
         ),
         const SizedBox(width: Sizes.p16),
-        const Expanded(child: Divider(color: AppColors.divider, thickness: 1)),
-      ],
-    );
-  }
-
-  Widget _buildLabel(String label) {
-    return Text(
-      label,
-      style: const TextStyle(
-        color: AppColors.textSecondary,
-        fontSize: 11,
-        letterSpacing: 1.2,
-        fontWeight: FontWeight.w600,
-      ),
-    );
-  }
-
-  Widget _buildMoodSelector() {
-    // Icons matching the line-art style
-    final moods = [
-      Icons.sentiment_very_dissatisfied,
-      Icons.sentiment_dissatisfied,
-      Icons.sentiment_neutral,
-      Icons.sentiment_satisfied,
-      Icons.sentiment_very_satisfied,
-    ];
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        vertical: Sizes.p20,
-        horizontal: Sizes.p16,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.bgCard,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: List.generate(moods.length, (index) {
-          final isSelected = index == _selectedMood;
-          return GestureDetector(
-            onTap: () => setState(() => _selectedMood = index),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.transparent, // Background inside circle
-                border: Border.all(
-                  color: isSelected
-                      ? AppColors.textPrimary
-                      : AppColors.textSecondary.withOpacity(0.5),
-                  width: isSelected ? 2 : 1.5,
-                ),
-              ),
-              child: Icon(
-                moods[index],
-                color: isSelected
-                    ? AppColors.textPrimary
-                    : AppColors.textSecondary,
-                size: 24,
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildCollapsibleCard({
-    required String text,
-    required bool isExpanded,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(Sizes.p16),
-        decoration: BoxDecoration(
-          color: AppColors.bgCard,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                text,
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 16,
-                ),
-                maxLines: isExpanded ? null : 1,
-                overflow: isExpanded
-                    ? TextOverflow.visible
-                    : TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: Sizes.p8),
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: AppColors.textSecondary.withOpacity(0.5),
-                ),
-              ),
-              child: Icon(
-                isExpanded
-                    ? Icons.keyboard_arrow_up
-                    : Icons.keyboard_arrow_down,
-                color: AppColors.textSecondary,
-                size: 18,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildThreeWinsCard() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.bgCard,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: List.generate(_wins.length, (index) {
-          final isLast = index == _wins.length - 1;
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: Sizes.p16,
-                  vertical: Sizes.p16,
-                ),
-                child: Row(
-                  children: [
-                    // Number Circle
-                    Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: AppColors.accentBlueDark,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Center(
-                        child: Text(
-                          '${index + 1}',
-                          style: const TextStyle(
-                            color: Color(0xFF5E85FD),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: Sizes.p12),
-                    Expanded(
-                      child: Text(
-                        _wins[index],
-                        style: const TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                    if (index == 0) // The star for the first item
-                      const Icon(
-                        Icons.star,
-                        color: AppColors.starYellow,
-                        size: 18,
-                      ),
-                  ],
-                ),
-              ),
-              if (!isLast)
-                const Divider(
-                  color: AppColors.divider,
-                  height: 1,
-                  thickness: 1,
-                  indent: 16,
-                  endIndent: 16,
-                ),
-            ],
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _buildTrackingCards() {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildSingleTracker(
-            title: 'ROUTINES',
-            current: 5,
-            total: 5,
-            icon: Icons.check_circle_outline,
-            iconColor: AppColors.iconGreen,
-          ),
-        ),
-        const SizedBox(width: Sizes.p12),
-        Expanded(
-          child: _buildSingleTracker(
-            title: 'SUPPLEMENTS',
-            current: 4,
-            total: 4,
-            icon: Icons.link,
-            iconColor: AppColors.accentBlue,
+        const Expanded(
+          child: Divider(
+            color: AppColors.bgBorderSecondary,
+            thickness: 1,
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildSingleTracker({
-    required String title,
-    required int current,
-    required int total,
-    required IconData icon,
-    required Color iconColor,
-  }) {
-    double progress = current / total;
-
-    return Container(
-      padding: const EdgeInsets.all(Sizes.p16),
-      decoration: BoxDecoration(
-        color: AppColors.bgCard,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              Icon(icon, color: iconColor, size: 16),
-            ],
-          ),
-          const SizedBox(height: Sizes.p12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                '$current',
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(width: 2),
-              Text(
-                ' / $total',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 16,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: Sizes.p12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 4,
-              backgroundColor: AppColors.divider,
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                AppColors.accentBlue,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

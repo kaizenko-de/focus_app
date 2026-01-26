@@ -6,10 +6,7 @@ import 'package:flutter/foundation.dart';
 class CustomException implements Exception {
   final String message;
   final Map<String, dynamic> translations;
-  CustomException({
-    required this.message,
-    required this.translations,
-  });
+  CustomException({required this.message, required this.translations});
 
   CustomException copyWith({
     String? message,
@@ -22,17 +19,15 @@ class CustomException implements Exception {
   }
 
   Map<String, dynamic> toMap() {
-    return <String, dynamic>{
-      'message': message,
-      'translations': translations,
-    };
+    return <String, dynamic>{'message': message, 'translations': translations};
   }
 
   factory CustomException.fromMap(Map<String, dynamic> map) {
     return CustomException(
       message: map['message'] as String,
       translations: Map<String, dynamic>.from(
-          (map['translations'] as Map<String, dynamic>)),
+        (map['translations'] as Map<String, dynamic>),
+      ),
     );
   }
 

@@ -23,7 +23,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: AppColors.bg,
         elevation: 0,
       ),
-      body: ListView(
+      /*   body: ListView(
         padding: const EdgeInsets.all(Sizes.p20),
         children: [
           _buildSection(
@@ -110,7 +110,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
         ],
-      ),
+      ), */
     );
   }
 
@@ -155,9 +155,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         vertical: Sizes.p12,
       ),
       decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: AppColors.bgSecondary),
-        ),
+        border: Border(bottom: BorderSide(color: AppColors.bgSecondary)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -168,15 +166,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: Sizes.p4),
-                Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+                Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
               ],
             ),
           ),
@@ -203,9 +198,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         vertical: Sizes.p16,
       ),
       decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: AppColors.bgSecondary),
-        ),
+        border: Border(bottom: BorderSide(color: AppColors.bgSecondary)),
       ),
       child: Row(
         children: [
@@ -236,10 +229,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: Sizes.p4),
-                Text(
-                  subtitle,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
+                Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
               ],
             ),
           ),
@@ -263,24 +253,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
         vertical: Sizes.p12,
       ),
       decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: AppColors.bgSecondary),
-        ),
+        border: Border(bottom: BorderSide(color: AppColors.bgSecondary)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w500,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w500),
           ),
           Text(
             value,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: AppColors.textSecondary,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: AppColors.textSecondary),
           ),
         ],
       ),
