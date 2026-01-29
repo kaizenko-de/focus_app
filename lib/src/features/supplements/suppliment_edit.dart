@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:focus/gen/assets.gen.dart';
 import 'package:focus/src/shared/modals/app_modals.dart';
 import 'package:focus/src/shared/providers/suppliments_provider.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -162,61 +163,108 @@ class SupplementEditScreen extends HookConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: Sizes.p20),
-              const Text(
-                'Supplements',
-                style: TextStyle(
+              Text(
+                'Suppliments',
+                style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: Sizes.p32),
-              // Center circle avatar (exact same as old UI)
-              Center(
-                child: CircleAvatar(
-                  radius: 40,
-                  backgroundColor: AppColors.bgCard,
-                  child: Icon(
-                    Icons.add_reaction_outlined,
-                    color: AppColors.textSecondary,
-                    size: 40,
+              const SizedBox(height: 20),
+
+              Align(
+                alignment: Alignment.center,
+                child: Assets.images.routineAdd.image(height: 80, width: 80),
+              ),
+
+              const SizedBox(height: Sizes.p24),
+              Container(
+                padding: const EdgeInsets.only(bottom: Sizes.p8),
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: AppColors.textSecondary.withValues(
+                        alpha: 0.5,
+                      ), // change color as needed
+                      width: 1, // border thickness
+                    ),
+                  ),
+                ),
+                child: TextField(
+                  controller: nameController,
+                  maxLines: null,
+                  onChanged: (_) => _trackChanges(),
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    hintText: 'Supplement Name',
+                    hintStyle: TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textSecondary.withOpacity(0.5),
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                    isCollapsed: true,
+                    isDense: true,
+                    filled: true, // Add this
+                    fillColor: Colors.transparent, // Add this
+                  ),
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 16,
                   ),
                 ),
               ),
-              const SizedBox(height: Sizes.p24),
-              // Supplement Name Field (exact same as old UI)
-              TextField(
-                controller: nameController,
-                onChanged: (_) => _trackChanges(),
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+              const SizedBox(height: 22),
+              Container(
+                padding: const EdgeInsets.only(bottom: Sizes.p8),
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: AppColors.textSecondary.withValues(
+                        alpha: 0.5,
+                      ), // change color as needed
+                      width: 1, // border thickness
+                    ),
+                  ),
                 ),
-                decoration: const InputDecoration(
-                  hintText: 'Supplement Name',
-                  hintStyle: TextStyle(color: AppColors.textTertiary),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
+                child: TextField(
+                  controller: dosageController,
+                  maxLines: null,
+                  onChanged: (_) => _trackChanges(),
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    hintText: 'Dosage / Notes (e.g. 200mg)',
+                    hintStyle: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textSecondary.withOpacity(0.5),
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                    isCollapsed: true,
+                    isDense: true,
+                    filled: true, // Add this
+                    fillColor: Colors.transparent, // Add this
+                  ),
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 16,
+                  ),
                 ),
               ),
-              const SizedBox(height: 4),
-              // Dosage Field (exact same as old UI)
-              TextField(
-                controller: dosageController,
-                onChanged: (_) => _trackChanges(),
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 18,
-                ),
-                decoration: const InputDecoration(
-                  hintText: 'Dosage / Notes (e.g. 200mg)',
-                  hintStyle: TextStyle(color: AppColors.textTertiary),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
+
               const SizedBox(height: Sizes.p24),
               // FREQUENCY (exact same as old UI)
               const Text(
@@ -300,6 +348,7 @@ class SupplementEditScreen extends HookConsumerWidget {
                     onPressed: () async {
                       final shouldDelete = await showDeleteConfirmationModal(
                         context,
+                        deleteType: "Suppliment",
                         itemName: existing.name,
                         subtitle: 'This action cannot be undone.',
                       );
@@ -336,7 +385,7 @@ class SupplementEditScreen extends HookConsumerWidget {
       decoration: BoxDecoration(
         color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black),
+        border: Border.all(color: AppColors.bgBorderSecondary),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -422,15 +471,24 @@ class SupplementEditScreen extends HookConsumerWidget {
     Function(bool) onChanged,
   ) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: AppColors.bgCard,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black),
+        border: Border.all(color: AppColors.bgBorderSecondary),
       ),
       child: Row(
         children: [
-          Icon(icon, color: AppColors.textSecondary, size: 20),
+          Container(
+            height: 44,
+            width: 44,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.bgBorderSecondary,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: AppColors.textSecondary, size: 20),
+          ),
           const SizedBox(width: 16),
           Text(
             label,

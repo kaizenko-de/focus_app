@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:focus/gen/assets.gen.dart';
 import 'package:focus/src/shared/providers/journey_provider.dart';
+import 'package:focus/src/theme/custom_theme.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:focus/constants/app_colors.dart';
 import 'package:focus/constants/app_sizes.dart';
@@ -57,31 +60,18 @@ class _JournalDetailViewState extends State<_JournalDetailView> {
   @override
   Widget build(BuildContext context) {
     final moods = ['😢', '☹️', '😐', '🙂', '😄'];
-    
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: AppColors.bg,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new,
-            size: 20,
-            color: AppColors.textSecondary,
-          ),
-          onPressed: () => Navigator.pop(context),
+        automaticallyImplyLeading: false,
+        title: TextButton(
+          child: Text("Cancel").textmdMedium.foregroundColor(Colors.white),
+          onPressed: () async {
+            context.pop();
+          },
         ),
-        titleSpacing: 0,
-        title: Text(
-          'JOURNAL ENTRY',
-          style: TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 12,
-            letterSpacing: 1.2,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        centerTitle: false,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: Sizes.p20),
@@ -90,10 +80,14 @@ class _JournalDetailViewState extends State<_JournalDetailView> {
           children: [
             const SizedBox(height: Sizes.p8),
             _buildDateHeader(),
-            const SizedBox(height: Sizes.p32),
-            _buildSectionHeader('REFLECTION'),
-            const SizedBox(height: Sizes.p24),
+
+            const SizedBox(height: Sizes.p12),
             _buildMoodDisplay(moods[widget.entry.moodIndex]),
+
+            _buildSectionHeader('REFLECTION'),
+            const SizedBox(height: Sizes.p12),
+
+            _buildMoodSelector(widget.entry.moodIndex),
             const SizedBox(height: Sizes.p24),
             _buildReadOnlyCard('GRATITUDE', widget.entry.gratitude),
             const SizedBox(height: Sizes.p24),
@@ -116,17 +110,38 @@ class _JournalDetailViewState extends State<_JournalDetailView> {
 
   Widget _buildDateHeader() {
     final date = widget.entry.date;
-    final days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
+    final days = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           '${days[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}',
           style: const TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
             height: 1.1,
           ),
@@ -136,38 +151,71 @@ class _JournalDetailViewState extends State<_JournalDetailView> {
     );
   }
 
-  Widget _buildMoodDisplay(String mood) {
+  Widget _buildMoodSelector(int selectedMood) {
+    final moods = [
+      Assets.images.veryDissatified,
+      Assets.images.dissatisfied,
+      Assets.images.neutral,
+      Assets.images.satisfied,
+      Assets.images.verysatisfied,
+    ];
+
     return Container(
       padding: const EdgeInsets.symmetric(
-        vertical: Sizes.p24,
+        vertical: Sizes.p20,
         horizontal: Sizes.p16,
       ),
       decoration: BoxDecoration(
         color: AppColors.bgCard,
-        borderRadius: BorderRadius.circular(16),
+
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.bgBorderSecondary),
       ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: List.generate(moods.length, (index) {
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 25,
+            height: 25,
+
+            child: moods[index].image(
+              color: index == selectedMood
+                  ? AppColors.textPrimary
+                  : AppColors.textSecondary,
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildMoodDisplay(String mood) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        vertical: Sizes.p12,
+        horizontal: Sizes.p16,
+      ),
+      // decoration: BoxDecoration(
+      //   color: AppColors.bgCard,
+      //   borderRadius: BorderRadius.circular(16),
+      // ),
       child: Center(
         child: Column(
           children: [
-            Text(
-              mood,
-              style: const TextStyle(fontSize: 56),
-            ),
-            const SizedBox(height: Sizes.p12),
+            Text(mood, style: const TextStyle(fontSize: 56)),
+
             const Text(
               'Relaxed',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 20,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
               ),
             ),
             const Text(
               'Evening Mood',
-              style: TextStyle(
-                fontSize: 13,
-                color: AppColors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
           ],
         ),
@@ -190,6 +238,7 @@ class _JournalDetailViewState extends State<_JournalDetailView> {
         ),
         const SizedBox(height: Sizes.p12),
         Container(
+          width: double.infinity,
           padding: const EdgeInsets.all(Sizes.p16),
           decoration: BoxDecoration(
             color: AppColors.bgCard,
@@ -274,11 +323,7 @@ class _JournalDetailViewState extends State<_JournalDetailView> {
                       ),
                     ),
                     if (win.isHighlighted)
-                      const Icon(
-                        Icons.star,
-                        color: AppColors.accent,
-                        size: 18,
-                      ),
+                      const Icon(Icons.star, color: AppColors.accent, size: 18),
                   ],
                 ),
               );
@@ -389,10 +434,7 @@ class _JournalDetailViewState extends State<_JournalDetailView> {
         ),
         const SizedBox(width: Sizes.p16),
         const Expanded(
-          child: Divider(
-            color: AppColors.bgBorderSecondary,
-            thickness: 1,
-          ),
+          child: Divider(color: AppColors.bgBorderSecondary, thickness: 1),
         ),
       ],
     );

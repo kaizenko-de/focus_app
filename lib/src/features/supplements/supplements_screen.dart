@@ -23,7 +23,7 @@ class SupplementsScreen extends ConsumerWidget {
           'Supplements',
           style: TextStyle(
             color: AppColors.textPrimary,
-            fontSize: 28,
+            fontSize: 32,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -101,6 +101,7 @@ class _SupplementCard extends StatelessWidget {
         padding: const EdgeInsets.all(Sizes.p16),
         decoration: BoxDecoration(
           color: AppColors.bgCard,
+          border: Border.all(color: AppColors.bgBorderSecondary),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
@@ -129,7 +130,20 @@ class _SupplementCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.bgCard,
+                border: Border.all(color: AppColors.bgBorderSecondary),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Center(
+                child: const Icon(
+                  Icons.chevron_right,
+                  size: 21,
+                  color: AppColors.textgrey,
+                ),
+              ),
+            ),
           ],
         ),
       ),

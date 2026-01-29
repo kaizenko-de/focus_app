@@ -28,6 +28,10 @@ class $AssetsImagesGen {
   /// File path: assets/images/neutral.png
   AssetGenImage get neutral => const AssetGenImage('assets/images/neutral.png');
 
+  /// File path: assets/images/routine_add.png
+  AssetGenImage get routineAdd =>
+      const AssetGenImage('assets/images/routine_add.png');
+
   /// File path: assets/images/routines.png
   AssetGenImage get routines =>
       const AssetGenImage('assets/images/routines.png');
@@ -58,6 +62,7 @@ class $AssetsImagesGen {
     dissatisfied,
     journal,
     neutral,
+    routineAdd,
     routines,
     satisfied,
     settings,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:focus/gen/assets.gen.dart';
 import 'package:focus/src/shared/modals/app_modals.dart';
 import 'package:focus/src/shared/providers/routines_provider.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -225,35 +226,90 @@ class RoutineEditScreen extends HookConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: Sizes.p20),
               Text(
-                existing == null ? 'New Routine' : 'Edit Routine',
+                'Routines',
                 style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 40),
-              TextField(
-                controller: nameController,
-                onChanged: (_) => _trackChanges(),
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
+              const SizedBox(height: 10),
+
+              Align(
+                alignment: Alignment.center,
+                child: Assets.images.routineAdd.image(height: 80, width: 80),
+              ),
+              const SizedBox(height: 20),
+
+              Container(
+                padding: const EdgeInsets.only(bottom: Sizes.p8),
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: AppColors.textSecondary.withValues(
+                        alpha: 0.5,
+                      ), // change color as needed
+                      width: 1, // border thickness
+                    ),
+                  ),
                 ),
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  hintText: 'Enter name...',
-                  hintStyle: TextStyle(color: AppColors.textSecondary),
+                child: TextField(
+                  controller: nameController,
+                  maxLines: null,
+                  onChanged: (_) => _trackChanges(),
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    hintText: 'What is the routine?',
+                    hintStyle: TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textSecondary.withOpacity(0.5),
+                    ),
+                    contentPadding: EdgeInsets.zero,
+                    isCollapsed: true,
+                    isDense: true,
+                    filled: true, // Add this
+                    fillColor: Colors.transparent, // Add this
+                  ),
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 16,
+                  ),
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 22),
+
+              const Text(
+                'FREQUENCY',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+
+              const SizedBox(height: 12),
               // Day Selector (exact same as old UI)
               _buildDaySelector(selectedDays, _trackChanges),
               const SizedBox(height: 32),
-              // Time of Day Setting (exact same as old UI)
+              const Text(
+                'SETTINGS',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
               _buildInteractiveSetting(
                 Icons.schedule,
                 'Time of Day',
@@ -267,21 +323,31 @@ class RoutineEditScreen extends HookConsumerWidget {
                 selectedDuration.value,
                 _showDurationPicker,
               ),
-              // Reminder Setting (new UI element - you can remove if not wanted)
-              const SizedBox(height: 12),
+
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: AppColors.bgCard,
+                  border: Border.all(color: AppColors.bgBorderSecondary),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   children: [
-                    const Icon(
-                      Icons.notifications,
-                      color: AppColors.textSecondary,
-                      size: 20,
+                    Container(
+                      height: 44,
+                      width: 44,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.bgBorderSecondary,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(
+                        Icons.notifications,
+                        color: AppColors.textSecondary,
+                        size: 20,
+                      ),
                     ),
+
                     const SizedBox(width: 16),
                     const Expanded(
                       child: Text(
@@ -311,6 +377,7 @@ class RoutineEditScreen extends HookConsumerWidget {
                       final shouldDelete = await showDeleteConfirmationModal(
                         context,
                         itemName: existing.name,
+                        deleteType: "Routine",
                         subtitle: 'This action cannot be undone.',
                       );
                       if (shouldDelete == true && context.mounted) {
@@ -345,6 +412,7 @@ class RoutineEditScreen extends HookConsumerWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.bgCard,
+        border: Border.all(color: AppColors.bgBorderSecondary),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -393,11 +461,22 @@ class RoutineEditScreen extends HookConsumerWidget {
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           color: AppColors.bgCard,
+          border: Border.all(color: AppColors.bgBorderSecondary),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
-            Icon(icon, color: AppColors.textSecondary, size: 20),
+            Container(
+              height: 44,
+              width: 44,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.bgBorderSecondary,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: AppColors.textSecondary, size: 20),
+            ),
+
             const SizedBox(width: 16),
             Text(
               label,

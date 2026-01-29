@@ -23,8 +23,8 @@ class RoutinesScreen extends ConsumerWidget {
           'Routines',
           style: TextStyle(
             color: AppColors.textPrimary,
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
+            fontSize: 32,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),
@@ -48,7 +48,7 @@ class RoutinesScreen extends ConsumerWidget {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      /*     Text(
                         entry.key.toUpperCase(),
                         style: const TextStyle(
                           color: AppColors.textSecondary,
@@ -56,15 +56,14 @@ class RoutinesScreen extends ConsumerWidget {
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1.2,
                         ),
-                      ),
-                      const SizedBox(height: Sizes.p12),
+                      ), */
+                      const SizedBox(height: Sizes.p8),
                       ...entry.value.map((routine) {
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: Sizes.p12),
+                          padding: const EdgeInsets.only(bottom: Sizes.p8),
                           child: _RoutineCard(routine: routine),
                         );
                       }),
-                      const SizedBox(height: Sizes.p24),
                     ],
                   );
                 }).toList(),
@@ -75,6 +74,7 @@ class RoutinesScreen extends ConsumerWidget {
         onPressed: () {
           context.pushNamed(AppRoutes.routineEdit.name);
         },
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         label: const Text(
           'New Routine',
           style: TextStyle(fontWeight: FontWeight.w600),
@@ -95,15 +95,13 @@ class _RoutineCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        context.pushNamed(
-          AppRoutes.routineEdit.name,
-          extra: routine.id,
-        );
+        context.pushNamed(AppRoutes.routineEdit.name, extra: routine.id);
       },
       child: Container(
         padding: const EdgeInsets.all(Sizes.p16),
         decoration: BoxDecoration(
           color: AppColors.bgCard,
+          border: Border.all(color: AppColors.bgBorderSecondary),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
@@ -119,7 +117,7 @@ class _RoutineCard extends StatelessWidget {
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   Text(
@@ -132,7 +130,20 @@ class _RoutineCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.bgCard,
+                border: Border.all(color: AppColors.bgBorderSecondary),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Center(
+                child: const Icon(
+                  Icons.chevron_right,
+                  size: 21,
+                  color: AppColors.textgrey,
+                ),
+              ),
+            ),
           ],
         ),
       ),

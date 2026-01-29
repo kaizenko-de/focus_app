@@ -19,7 +19,7 @@ class AppColors {
   static const Color primaryDark = Color(0xff2a3fa8);
   static const Color accent = Color(0xffd4af37);
   static const Color goldenSelected = Color(0xffD4C086);
-  
+
   static const Color accentGold = Color(0xffdaa520);
 
   // Status colors
@@ -31,6 +31,7 @@ class AppColors {
   // Text colors
   static const Color textPrimary = Color(0xffFFFFFF);
   static const Color textSecondary = Color(0xff95A5C6);
+  static const Color textgrey = Color(0xff525252);
 
   static const Color textTertiary = Color(0xff808080);
 

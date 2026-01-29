@@ -38,7 +38,7 @@ class JournalHistoryScreen extends HookConsumerWidget {
                       letterSpacing: -0.5,
                     ),
                   ),
-                  const SizedBox(height: Sizes.p8),
+                  // gapH8,
                   const Text(
                     'Reflecting on your consistency',
                     style: TextStyle(
