@@ -76,8 +76,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/journal',
             name: AppRoutes.journal.name,
-            builder: (context, state) =>
-                JournalScreen(entryId: state.extra as String?),
+            builder: (context, state) => const JournalScreen(),
           ),
           GoRoute(
             path: '/journalhistory',

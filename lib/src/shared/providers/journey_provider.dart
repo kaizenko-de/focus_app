@@ -13,6 +13,8 @@ class JournalEntry {
   final List<String> supplementIds; // taken supplements
   final String notes;
   final DateTime createdAt;
+  final bool isSubmitted; // true = EoD is submitted and immutable
+  final bool isPerfectDay; // true = all routines & supplements completed
 
   JournalEntry({
     required this.id,
@@ -25,6 +27,8 @@ class JournalEntry {
     required this.supplementIds,
     required this.notes,
     required this.createdAt,
+    this.isSubmitted = false,
+    this.isPerfectDay = false,
   });
 
   JournalEntry copyWith({
@@ -38,6 +42,8 @@ class JournalEntry {
     List<String>? supplementIds,
     String? notes,
     DateTime? createdAt,
+    bool? isSubmitted,
+    bool? isPerfectDay,
   }) {
     return JournalEntry(
       id: id ?? this.id,
@@ -50,6 +56,8 @@ class JournalEntry {
       supplementIds: supplementIds ?? this.supplementIds,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
+      isSubmitted: isSubmitted ?? this.isSubmitted,
+      isPerfectDay: isPerfectDay ?? this.isPerfectDay,
     );
   }
 }
@@ -81,7 +89,73 @@ class JournalNotifier extends StateNotifier<List<JournalEntry>> {
     state = [
       JournalEntry(
         id: '1',
-        date: DateTime.now().subtract(const Duration(days: 0)),
+        date: DateTime.now().subtract(const Duration(days: 1)),
+        moodIndex: 4,
+        gratitude: 'Grateful for great productivity.',
+        wins: [
+          Win(
+            id: '1',
+            text: 'Finished the Q4 proposal draft.',
+            isHighlighted: true,
+          ),
+          Win(id: '2', text: 'Healthy meal prep.', isHighlighted: false),
+          Win(id: '3', text: 'Great workout.', isHighlighted: false),
+        ],
+        affirmation: 'I am confident and focused.',
+        routineIds: ['r1', 'r2', 'r3'],
+        supplementIds: ['s1', 's2', 's3', 's4'],
+        notes: 'Amazing day overall!',
+        createdAt: DateTime.now().subtract(const Duration(days: 1)),
+        isSubmitted: true,
+        isPerfectDay: true,
+      ),
+      JournalEntry(
+        id: '2',
+        date: DateTime.now().subtract(const Duration(days: 2)),
+        moodIndex: 4,
+        gratitude: 'Grateful for great productivity.',
+        wins: [
+          Win(
+            id: '1',
+            text: 'Finished the Q4 proposal draft.',
+            isHighlighted: true,
+          ),
+          Win(id: '2', text: 'Healthy meal prep.', isHighlighted: false),
+          Win(id: '3', text: 'Great workout.', isHighlighted: false),
+        ],
+        affirmation: 'I am confident and focused.',
+        routineIds: ['r1', 'r2', 'r3'],
+        supplementIds: ['s1', 's2', 's3', 's4'],
+        notes: 'Amazing day overall!',
+        createdAt: DateTime.now().subtract(const Duration(days: 2)),
+        isSubmitted: true,
+        isPerfectDay: true,
+      ),
+      JournalEntry(
+        id: '3',
+        date: DateTime.now().subtract(const Duration(days: 3)),
+        moodIndex: 4,
+        gratitude: 'Grateful for great productivity.',
+        wins: [
+          Win(
+            id: '1',
+            text: 'Finished the Q4 proposal draft.',
+            isHighlighted: true,
+          ),
+          Win(id: '2', text: 'Healthy meal prep.', isHighlighted: false),
+          Win(id: '3', text: 'Great workout.', isHighlighted: false),
+        ],
+        affirmation: 'I am confident and focused.',
+        routineIds: ['r1', 'r2', 'r3'],
+        supplementIds: ['s1', 's2', 's3', 's4'],
+        notes: 'Amazing day overall!',
+        createdAt: DateTime.now().subtract(const Duration(days: 3)),
+        isSubmitted: true,
+        isPerfectDay: true,
+      ),
+      JournalEntry(
+        id: '4',
+        date: DateTime.now().subtract(const Duration(days: 4)),
         moodIndex: 3,
         gratitude: 'I am grateful for the focused work...',
         wins: [
@@ -97,27 +171,9 @@ class JournalNotifier extends StateNotifier<List<JournalEntry>> {
         routineIds: ['r1', 'r2', 'r3'],
         supplementIds: ['s1', 's2'],
         notes: 'Felt a bit tired around 3 PM but...',
-        createdAt: DateTime.now(),
-      ),
-      JournalEntry(
-        id: '2',
-        date: DateTime.now().subtract(const Duration(days: 1)),
-        moodIndex: 4,
-        gratitude: 'Grateful for great productivity.',
-        wins: [
-          Win(
-            id: '1',
-            text: 'Finished the Q4 proposal draft.',
-            isHighlighted: true,
-          ),
-          Win(id: '2', text: 'Healthy meal prep.', isHighlighted: false),
-          Win(id: '3', text: 'Great workout.', isHighlighted: false),
-        ],
-        affirmation: 'I am confident and focused.',
-        routineIds: ['r1', 'r2'],
-        supplementIds: ['s1', 's2', 's3'],
-        notes: 'Amazing day overall!',
-        createdAt: DateTime.now().subtract(const Duration(days: 1)),
+        createdAt: DateTime.now().subtract(const Duration(days: 4)),
+        isSubmitted: true,
+        isPerfectDay: true,
       ),
     ];
   }
@@ -150,6 +206,129 @@ class JournalNotifier extends StateNotifier<List<JournalEntry>> {
     } catch (e) {
       return null;
     }
+  }
+
+  // Calculate main streak (consecutive days with at least submitted EoD)
+  int calculateMainStreak() {
+    if (state.isEmpty) return 0;
+
+    // Sort by date descending (most recent first)
+    final sorted = List<JournalEntry>.from(state)
+      ..sort((a, b) => b.date.compareTo(a.date));
+
+    int streak = 0;
+    DateTime checkDate = DateTime.now();
+
+    // Start from yesterday if today has no entry, or from today if it does
+    bool hasEntryForToday = false;
+    for (final entry in sorted) {
+      if (_isSameDay(entry.date, checkDate) && entry.isSubmitted) {
+        hasEntryForToday = true;
+        streak = 1;
+        checkDate = checkDate.subtract(const Duration(days: 1));
+        break;
+      }
+    }
+
+    // If no entry for today, start counting from yesterday
+    if (!hasEntryForToday) {
+      checkDate = checkDate.subtract(const Duration(days: 1));
+    }
+
+    // Count consecutive days backwards
+    for (final entry in sorted) {
+      if (_isSameDay(entry.date, checkDate) && entry.isSubmitted) {
+        streak++;
+        checkDate = checkDate.subtract(const Duration(days: 1));
+      } else if (entry.date.isBefore(checkDate)) {
+        // Missed a day, streak is broken
+        break;
+      }
+    }
+
+    return streak;
+  }
+
+  // Calculate perfect days count
+  int calculatePerfectDaysCount() {
+    return state.where((e) => e.isPerfectDay && e.isSubmitted).length;
+  }
+
+  // Get best streak (all-time)
+  int calculateBestStreak() {
+    if (state.isEmpty) return 0;
+
+    // Sort by date
+    final sorted = List<JournalEntry>.from(state)
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    int bestStreak = 0;
+    int currentStreak = 0;
+    DateTime? lastDate;
+
+    for (final entry in sorted) {
+      if (!entry.isSubmitted) {
+        currentStreak = 0;
+        lastDate = null;
+        continue;
+      }
+
+      if (lastDate == null) {
+        currentStreak = 1;
+      } else {
+        final daysDifference = entry.date.difference(lastDate).inDays;
+        if (daysDifference == 1) {
+          currentStreak++;
+        } else {
+          currentStreak = 1;
+        }
+      }
+
+      if (currentStreak > bestStreak) {
+        bestStreak = currentStreak;
+      }
+
+      lastDate = entry.date;
+    }
+
+    return bestStreak;
+  }
+
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  // Calculate perfect days in current month
+  int calculatePerfectDaysCurrentMonth() {
+    final now = DateTime.now();
+    return state
+        .where(
+          (e) =>
+              e.isPerfectDay &&
+              e.isSubmitted &&
+              e.date.year == now.year &&
+              e.date.month == now.month,
+        )
+        .length;
+  }
+
+  // Calculate average perfect days per month
+  double calculateAvgPerfectDaysPerMonth() {
+    if (state.isEmpty) return 0.0;
+
+    // Group perfect days by month/year
+    final Map<String, int> monthMap = {};
+
+    for (final entry in state) {
+      if (entry.isPerfectDay && entry.isSubmitted) {
+        final key = '${entry.date.year}-${entry.date.month}';
+        monthMap[key] = (monthMap[key] ?? 0) + 1;
+      }
+    }
+
+    if (monthMap.isEmpty) return 0.0;
+    final totalPerfectDays = monthMap.values.fold<int>(0, (a, b) => a + b);
+    return totalPerfectDays / monthMap.length;
   }
 }
 
@@ -220,7 +399,9 @@ class DraftJournalEntry {
 }
 
 class DraftJournalNotifier extends StateNotifier<DraftJournalEntry> {
-  DraftJournalNotifier() : super(DraftJournalEntry());
+  final Ref ref;
+
+  DraftJournalNotifier(this.ref) : super(DraftJournalEntry());
 
   void setMood(int index) {
     state = state.copyWith(moodIndex: index, hasChanges: true);
@@ -235,7 +416,7 @@ class DraftJournalNotifier extends StateNotifier<DraftJournalEntry> {
     if (index != -1) {
       final updatedWins = List<Win>.from(state.wins);
       updatedWins[index] = updatedWins[index].copyWith(text: text);
-      state = state.copyWith(wins: updatedWins);
+      state = state.copyWith(wins: updatedWins, hasChanges: true);
     }
   }
 
@@ -292,6 +473,35 @@ class DraftJournalNotifier extends StateNotifier<DraftJournalEntry> {
     state = state.copyWith(takenSupplements: updated, hasChanges: true);
   }
 
+  // Save EoD as submitted (immutable) journal entry
+  void submitEoD({required int totalRoutines, required int totalSupplements}) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // Check if routines and supplements are 100% completed
+    final isPerfectDay =
+        state.completedRoutines.length == totalRoutines &&
+        state.takenSupplements.length == totalSupplements;
+
+    final entry = JournalEntry(
+      id: 'entry_${today.millisecondsSinceEpoch}',
+      date: today,
+      moodIndex: state.moodIndex,
+      gratitude: state.gratitude,
+      wins: state.wins,
+      affirmation: state.affirmation,
+      routineIds: state.completedRoutines.toList(),
+      supplementIds: state.takenSupplements.toList(),
+      notes: state.notes,
+      createdAt: DateTime.now(),
+      isSubmitted: true,
+      isPerfectDay: isPerfectDay,
+    );
+
+    ref.read(journalProvider.notifier).saveJournalEntry(entry);
+    reset();
+  }
+
   void reset() {
     state = DraftJournalEntry();
   }
@@ -299,5 +509,54 @@ class DraftJournalNotifier extends StateNotifier<DraftJournalEntry> {
 
 final draftJournalProvider =
     StateNotifierProvider<DraftJournalNotifier, DraftJournalEntry>(
-      (ref) => DraftJournalNotifier(),
+      (ref) => DraftJournalNotifier(ref),
     );
+
+// Provider to get today's submitted entry
+final todaysEntryProvider = Provider<JournalEntry?>((ref) {
+  final entries = ref.watch(journalProvider);
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+
+  try {
+    return entries.firstWhere(
+      (e) =>
+          e.date.year == today.year &&
+          e.date.month == today.month &&
+          e.date.day == today.day &&
+          e.isSubmitted,
+    );
+  } catch (e) {
+    return null;
+  }
+});
+
+// Provider to get main streak
+final mainStreakProvider = Provider<int>((ref) {
+  final journal = ref.watch(journalProvider.notifier);
+  return journal.calculateMainStreak();
+});
+
+// Provider to get best streak
+final bestStreakProvider = Provider<int>((ref) {
+  final journal = ref.watch(journalProvider.notifier);
+  return journal.calculateBestStreak();
+});
+
+// Provider to get perfect days count
+final perfectDaysCountProvider = Provider<int>((ref) {
+  final journal = ref.watch(journalProvider.notifier);
+  return journal.calculatePerfectDaysCount();
+});
+
+// Provider to get perfect days in current month
+final perfectDaysCurrentMonthProvider = Provider<int>((ref) {
+  final journal = ref.watch(journalProvider.notifier);
+  return journal.calculatePerfectDaysCurrentMonth();
+});
+
+// Provider to get average perfect days per month
+final avgPerfectDaysPerMonthProvider = Provider<double>((ref) {
+  final journal = ref.watch(journalProvider.notifier);
+  return journal.calculateAvgPerfectDaysPerMonth();
+});

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:focus/gen/assets.gen.dart';
-import 'package:focus/src/router/app_router.dart';
 import 'package:focus/src/shared/providers/journey_provider.dart';
 import 'package:focus/src/shared/providers/routines_provider.dart';
 import 'package:focus/src/shared/providers/suppliments_provider.dart';
@@ -620,18 +619,26 @@ class EoDFlowScreen extends HookConsumerWidget {
   }
 
   void _saveEoD(BuildContext context, WidgetRef ref) {
-    final routines = ref.read(routineProvider);
-    final supplements = ref.read(supplementProvider);
+    final draftState = ref.read(draftJournalProvider);
+    final journalNotifier = ref.read(journalProvider.notifier);
     final draftNotifier = ref.read(draftJournalProvider.notifier);
 
-    // Submit the EoD (this saves it as an immutable journal entry)
-    draftNotifier.submitEoD(
-      totalRoutines: routines.length,
-      totalSupplements: supplements.length,
+    final entry = JournalEntry(
+      id: DateTime.now().toString(),
+      date: DateTime.now(),
+      moodIndex: draftState.moodIndex,
+      gratitude: draftState.gratitude,
+      wins: draftState.wins,
+      affirmation: draftState.affirmation,
+      routineIds: draftState.completedRoutines.toList(),
+      supplementIds: draftState.takenSupplements.toList(),
+      notes: draftState.notes,
+      createdAt: DateTime.now(),
     );
 
-    // Navigate to day completed screen
-    context.pushReplacementNamed(AppRoutes.dayCompleted.name);
+    journalNotifier.saveJournalEntry(entry);
+    draftNotifier.reset();
+    context.pop();
   }
 
   Future<bool> _showUnsavedChangesDialog(

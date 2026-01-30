@@ -1,40 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:focus/gen/assets.gen.dart';
-import 'package:focus/src/shared/providers/journey_provider.dart';
-import 'package:focus/src/shared/providers/routines_provider.dart';
-import 'package:focus/src/shared/providers/suppliments_provider.dart';
-import 'package:go_router/go_router.dart';
-import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../constants/app_colors.dart';
 import '../../../constants/app_sizes.dart';
 
-class DayCompletedScreen extends ConsumerWidget {
+class DayCompletedScreen extends StatelessWidget {
   const DayCompletedScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final todaysEntry = ref.watch(todaysEntryProvider);
-    final routines = ref.watch(routineProvider);
-    final supplements = ref.watch(supplementProvider);
-
-    if (todaysEntry == null) {
-      return Scaffold(
-        backgroundColor: AppColors.bg,
-        body: Center(
-          child: ElevatedButton(
-            onPressed: () => context.pop(),
-            child: const Text('Back'),
-          ),
-        ),
-      );
-    }
-
-    final completedRoutines = todaysEntry.routineIds.length;
-    final completedSupplements = todaysEntry.supplementIds.length;
-    final routineProgress = routines.isEmpty ? 0.0 : completedRoutines / routines.length;
-    final supplementProgress = supplements.isEmpty ? 0.0 : completedSupplements / supplements.length;
-
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -79,7 +53,7 @@ class DayCompletedScreen extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: Sizes.p20),
               child: Text(
-                _getDateString(todaysEntry.date),
+                'Friday, 23rd of January 2026',
                 style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
               ),
             ),
@@ -87,34 +61,33 @@ class DayCompletedScreen extends ConsumerWidget {
             gapH24,
 
             // ───────── STAR ─────────
-            if (todaysEntry.isPerfectDay)
-              Align(
-                alignment: Alignment.center,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SvgPicture.asset(Assets.svg.star),
+            Align(
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SvgPicture.asset(Assets.svg.star),
 
-                    gapH16,
+                  gapH16,
 
-                    // ───────── PERFECT DAY ─────────
-                    const Text(
-                      'Perfect Day',
-                      style: TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
+                  // ───────── PERFECT DAY ─────────
+                  const Text(
+                    'Perfect Day',
+                    style: TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
                     ),
-                    gapH8,
-                    SvgPicture.asset(Assets.svg.gradientLine),
-                  ],
-                ),
+                  ),
+                  gapH8,
+                  SvgPicture.asset(Assets.svg.gradientLine),
+                ],
               ),
+            ),
 
             gapH48,
-            _buildTrackingCards(completedRoutines, routines.length, completedSupplements, supplements.length),
+            _buildTrackingCards(),
 
             // ───────── CARDS ─────────
           ],
@@ -123,34 +96,7 @@ class DayCompletedScreen extends ConsumerWidget {
     );
   }
 
-  String _getDateString(DateTime date) {
-    final days = [
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday',
-    ];
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${days[date.weekday - 1]}, ${date.day}th of ${months[date.month - 1]} ${date.year}';
-  }
-
-  Widget _buildTrackingCards(int completedRoutines, int totalRoutines, int completedSupplements, int totalSupplements) {
+  Widget _buildTrackingCards() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: Sizes.p20),
       child: Column(
@@ -158,17 +104,17 @@ class DayCompletedScreen extends ConsumerWidget {
           _trackingCard(
             icon: Assets.images.routines,
             title: 'Routines',
-            subtitle: '${(completedRoutines / totalRoutines * 100).toStringAsFixed(0)}% completed',
-            value: '$completedRoutines/$totalRoutines',
-            progress: totalRoutines == 0 ? 0.0 : completedRoutines / totalRoutines,
+            subtitle: '70% completed',
+            value: '4/5',
+            progress: 0.7,
           ),
           gapH24,
           _trackingCard(
             icon: Assets.images.suppliments,
             title: 'Supplements',
-            subtitle: '${(completedSupplements / totalSupplements * 100).toStringAsFixed(0)}% taken',
-            value: '$completedSupplements/$totalSupplements',
-            progress: totalSupplements == 0 ? 0.0 : completedSupplements / totalSupplements,
+            subtitle: '50% taken',
+            value: '2/4',
+            progress: 0.5,
           ),
         ],
       ),
@@ -187,6 +133,7 @@ class DayCompletedScreen extends ConsumerWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.bgCard,
+
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.bgBorderSecondary),
       ),
@@ -209,7 +156,7 @@ class DayCompletedScreen extends ConsumerWidget {
                   color: AppColors.iconGrey,
                 ),
               ),
-              const SizedBox(width: Sizes.p16),
+              gapW16,
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -243,7 +190,7 @@ class DayCompletedScreen extends ConsumerWidget {
               ),
             ],
           ),
-          const SizedBox(height: Sizes.p16),
+          gapH16,
           ClipRRect(
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
@@ -260,9 +207,3 @@ class DayCompletedScreen extends ConsumerWidget {
 
   // ─────────────────────────────
 }
-
-const gapH4 = SizedBox(height: 4);
-const gapH8 = SizedBox(height: 8);
-const gapH16 = SizedBox(height: 16);
-const gapH24 = SizedBox(height: 24);
-const gapH48 = SizedBox(height: 48);

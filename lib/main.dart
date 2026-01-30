@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'src/router/app_router.dart';
-import 'src/theme/custom_theme.dart';
 import 'constants/app_colors.dart';
 
 void main() {

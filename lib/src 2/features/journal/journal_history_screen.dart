@@ -13,7 +13,6 @@ class JournalHistoryScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final entries = ref.watch(journalProvider);
-    final mainStreak = ref.watch(mainStreakProvider);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -39,6 +38,7 @@ class JournalHistoryScreen extends HookConsumerWidget {
                       letterSpacing: -0.5,
                     ),
                   ),
+                  // gapH8,
                   const Text(
                     'Reflecting on your consistency',
                     style: TextStyle(
@@ -56,14 +56,14 @@ class JournalHistoryScreen extends HookConsumerWidget {
               color: AppColors.bg,
               child: Column(
                 children: [
-                  _buildStreakSection(mainStreak),
+                  _buildStreakSection(),
                   const SizedBox(height: Sizes.p24),
                 ],
               ),
             ),
             // Scrollable Entries
             Expanded(
-              child: entries.where((e) => e.isSubmitted).isEmpty
+              child: entries.isEmpty
                   ? Center(
                       child: Text(
                         'No journal entries yet',
@@ -77,18 +77,11 @@ class JournalHistoryScreen extends HookConsumerWidget {
                         Sizes.p20,
                         Sizes.p32,
                       ),
-                      itemCount: entries.where((e) => e.isSubmitted).length,
+                      itemCount: entries.length,
                       separatorBuilder: (_, __) =>
                           const SizedBox(height: Sizes.p16),
-                      itemBuilder: (context, index) {
-                        final submittedEntries =
-                            entries.where((e) => e.isSubmitted).toList()
-                              ..sort((a, b) => b.date.compareTo(a.date));
-                        return _HistoryCard(
-                          entry: submittedEntries[index],
-                          context: context,
-                        );
-                      },
+                      itemBuilder: (context, index) =>
+                          _HistoryCard(entry: entries[index], context: context),
                     ),
             ),
           ],
@@ -97,7 +90,7 @@ class JournalHistoryScreen extends HookConsumerWidget {
     );
   }
 
-  Widget _buildStreakSection(int currentStreak) {
+  Widget _buildStreakSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -113,9 +106,9 @@ class JournalHistoryScreen extends HookConsumerWidget {
                 color: AppColors.textSecondary.withOpacity(0.7),
               ),
             ),
-            Text(
-              '$currentStreak Days',
-              style: const TextStyle(
+            const Text(
+              '24 Days',
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
                 color: AppColors.textPrimary,
@@ -126,14 +119,12 @@ class JournalHistoryScreen extends HookConsumerWidget {
         const SizedBox(height: Sizes.p12),
         ClipRRect(
           borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: (currentStreak / 30).clamp(0.0, 1.0),
+          child: const LinearProgressIndicator(
+            value: 24 / 30,
             minHeight: 6,
-            borderRadius: const BorderRadius.all(Radius.circular(4)),
+            borderRadius: BorderRadius.all(Radius.circular(4)),
             backgroundColor: AppColors.bgBorderSecondary,
-            valueColor: const AlwaysStoppedAnimation<Color>(
-              AppColors.textSecondary,
-            ),
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.textSecondary),
           ),
         ),
       ],
@@ -167,7 +158,7 @@ class _HistoryCard extends StatelessWidget {
 
     return InkWell(
       onTap: () {
-        context.pushNamed(AppRoutes.journal.name, extra: entry.id);
+        context.pushNamed(AppRoutes.journal.name);
       },
       child: Container(
         padding: const EdgeInsets.all(Sizes.p16),

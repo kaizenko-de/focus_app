@@ -11,36 +11,20 @@ import 'package:focus/constants/app_sizes.dart';
 // --- Main Screen ---
 
 class JournalScreen extends HookConsumerWidget {
-  final String? entryId; // ID passed from history screen
-  
-  const JournalScreen({super.key, this.entryId});
+  const JournalScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final entries = ref.watch(journalProvider);
-    
-    // If entryId is provided, find that specific entry
-    // Otherwise, display the most recent SUBMITTED entry
-    JournalEntry? entry;
-    
-    if (entryId != null) {
-      try {
-        entry = entries.firstWhere((e) => e.id == entryId);
-      } catch (e) {
-        entry = null;
-      }
-    } else {
-      final submittedEntries = entries.where((e) => e.isSubmitted).toList()
-        ..sort((a, b) => b.date.compareTo(a.date));
-      entry = submittedEntries.isNotEmpty ? submittedEntries.first : null;
-    }
+    // Display the most recent entry (read-only)
+    final entry = entries.isNotEmpty ? entries.first : null;
 
     if (entry == null) {
       return Scaffold(
         backgroundColor: AppColors.bg,
         body: Center(
           child: Text(
-            'No journal entries found',
+            'No journal entries yet',
             style: TextStyle(color: AppColors.textSecondary),
           ),
         ),

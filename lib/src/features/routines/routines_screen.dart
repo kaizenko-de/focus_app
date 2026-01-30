@@ -48,20 +48,11 @@ class RoutinesScreen extends ConsumerWidget {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      /*     Text(
-                        entry.key.toUpperCase(),
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                        ),
-                      ), */
                       const SizedBox(height: Sizes.p8),
                       ...entry.value.map((routine) {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: Sizes.p8),
-                          child: _RoutineCard(routine: routine),
+                          child: _RoutineCard(routine: routine, context: context),
                         );
                       }),
                     ],
@@ -88,8 +79,9 @@ class RoutinesScreen extends ConsumerWidget {
 
 class _RoutineCard extends StatelessWidget {
   final Routine routine;
+  final BuildContext context;
 
-  const _RoutineCard({required this.routine});
+  const _RoutineCard({required this.routine, required this.context});
 
   @override
   Widget build(BuildContext context) {
@@ -136,8 +128,8 @@ class _RoutineCard extends StatelessWidget {
                 border: Border.all(color: AppColors.bgBorderSecondary),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Center(
-                child: const Icon(
+              child: const Center(
+                child: Icon(
                   Icons.chevron_right,
                   size: 21,
                   color: AppColors.textgrey,

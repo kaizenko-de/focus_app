@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:focus/src/shared/providers/suppliments_provider.dart';
+import 'package:focus/src/shared/providers/routines_provider.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:focus/constants/app_colors.dart';
 import 'package:focus/constants/app_sizes.dart';
 import 'package:focus/src/router/app_router.dart';
 
-class SupplementsScreen extends ConsumerWidget {
-  const SupplementsScreen({super.key});
+class RoutinesScreen extends ConsumerWidget {
+  const RoutinesScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final supplements = ref.watch(supplementProvider);
-    final supplementsByTime = ref.watch(supplementsByTimeProvider);
+    final routines = ref.watch(routineProvider);
+    final routinesByTime = ref.watch(routinesByTimeProvider);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -20,18 +20,18 @@ class SupplementsScreen extends ConsumerWidget {
         backgroundColor: AppColors.bg,
         elevation: 0,
         title: const Text(
-          'Supplements',
+          'Routines',
           style: TextStyle(
             color: AppColors.textPrimary,
             fontSize: 32,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),
-      body: supplements.isEmpty
+      body: routines.isEmpty
           ? const Center(
               child: Text(
-                'No supplements added',
+                'No routines added',
                 style: TextStyle(color: AppColors.textSecondary),
               ),
             )
@@ -44,11 +44,11 @@ class SupplementsScreen extends ConsumerWidget {
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: supplementsByTime.entries.map((entry) {
+                children: routinesByTime.entries.map((entry) {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      /*     Text(
                         entry.key.toUpperCase(),
                         style: const TextStyle(
                           color: AppColors.textSecondary,
@@ -56,15 +56,14 @@ class SupplementsScreen extends ConsumerWidget {
                           fontWeight: FontWeight.bold,
                           letterSpacing: 1.2,
                         ),
-                      ),
-                      const SizedBox(height: Sizes.p12),
-                      ...entry.value.map((supplement) {
+                      ), */
+                      const SizedBox(height: Sizes.p8),
+                      ...entry.value.map((routine) {
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: Sizes.p12),
-                          child: _SupplementCard(supplement: supplement, context: context),
+                          padding: const EdgeInsets.only(bottom: Sizes.p8),
+                          child: _RoutineCard(routine: routine),
                         );
                       }),
-                      const SizedBox(height: Sizes.p24),
                     ],
                   );
                 }).toList(),
@@ -73,10 +72,11 @@ class SupplementsScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: AppColors.primary,
         onPressed: () {
-          context.pushNamed(AppRoutes.supplementEdit.name);
+          context.pushNamed(AppRoutes.routineEdit.name);
         },
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         label: const Text(
-          'Add Supplement',
+          'New Routine',
           style: TextStyle(fontWeight: FontWeight.w600),
         ),
         icon: const Icon(Icons.add),
@@ -86,17 +86,16 @@ class SupplementsScreen extends ConsumerWidget {
   }
 }
 
-class _SupplementCard extends StatelessWidget {
-  final Supplement supplement;
-  final BuildContext context;
+class _RoutineCard extends StatelessWidget {
+  final Routine routine;
 
-  const _SupplementCard({required this.supplement, required this.context});
+  const _RoutineCard({required this.routine});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        context.pushNamed(AppRoutes.supplementEdit.name, extra: supplement.id);
+        context.pushNamed(AppRoutes.routineEdit.name, extra: routine.id);
       },
       child: Container(
         padding: const EdgeInsets.all(Sizes.p16),
@@ -107,22 +106,22 @@ class _SupplementCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Text(supplement.icon, style: const TextStyle(fontSize: 24)),
+            Text(routine.icon, style: const TextStyle(fontSize: 24)),
             const SizedBox(width: Sizes.p12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    supplement.name,
+                    routine.name,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                   Text(
-                    supplement.dosage,
+                    '${routine.timeOfDay} • ${routine.duration}',
                     style: const TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 13,
@@ -137,8 +136,8 @@ class _SupplementCard extends StatelessWidget {
                 border: Border.all(color: AppColors.bgBorderSecondary),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Center(
-                child: Icon(
+              child: Center(
+                child: const Icon(
                   Icons.chevron_right,
                   size: 21,
                   color: AppColors.textgrey,

@@ -193,7 +193,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               children: [
                 _pickerDay(day.toString(), isSelected),
                 Text(
-                  (!isPerfectDay) ? '' : '⭐',
+                  (isSelected || !isPerfectDay) ? '' : '⭐',
                   style: TextStyle(
                     color: isSelected ? Colors.white : AppColors.textSecondary,
                     fontSize: 9,
@@ -348,8 +348,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               HapticFeedback.mediumImpact();
               if (todaysEntry == null) {
                 context.pushNamed(AppRoutes.eodFlow.name);
-              } else {
-                context.pushNamed(AppRoutes.dayCompleted.name);
               }
             },
             child: Container(
@@ -371,8 +369,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildStatsFlat() {
     final bestStreak = ref.watch(bestStreakProvider);
     final perfectDaysCount = ref.watch(perfectDaysCountProvider);
-    final perfectDaysCurrentMonth = ref.watch(perfectDaysCurrentMonthProvider);
-    final avgPerfectDaysPerMonth = ref.watch(avgPerfectDaysPerMonthProvider);
 
     Widget stat(String title, String value) {
       return Expanded(
@@ -432,11 +428,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           gapH24,
           Row(
             children: [
-              stat('CURRENT MONTH', perfectDaysCurrentMonth.toString()),
-              stat(
-                'AVG. PERFECT/MONTH',
-                avgPerfectDaysPerMonth.toStringAsFixed(1),
-              ),
+              stat('CURRENT MONTH', '22'),
+              stat('AVG. PERFECT/MONTH', '22.4'),
             ],
           ),
         ],

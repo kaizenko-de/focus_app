@@ -61,7 +61,7 @@ class SupplementsScreen extends ConsumerWidget {
                       ...entry.value.map((supplement) {
                         return Padding(
                           padding: const EdgeInsets.only(bottom: Sizes.p12),
-                          child: _SupplementCard(supplement: supplement, context: context),
+                          child: _SupplementCard(supplement: supplement),
                         );
                       }),
                       const SizedBox(height: Sizes.p24),
@@ -88,9 +88,8 @@ class SupplementsScreen extends ConsumerWidget {
 
 class _SupplementCard extends StatelessWidget {
   final Supplement supplement;
-  final BuildContext context;
 
-  const _SupplementCard({required this.supplement, required this.context});
+  const _SupplementCard({required this.supplement});
 
   @override
   Widget build(BuildContext context) {
@@ -137,8 +136,8 @@ class _SupplementCard extends StatelessWidget {
                 border: Border.all(color: AppColors.bgBorderSecondary),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Center(
-                child: Icon(
+              child: Center(
+                child: const Icon(
                   Icons.chevron_right,
                   size: 21,
                   color: AppColors.textgrey,
