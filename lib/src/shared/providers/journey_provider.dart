@@ -1,20 +1,47 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:hive/hive.dart';
+
+part 'journey_provider.g.dart';
 
 // ─────────────────── MODELS ───────────────────
 
-class JournalEntry {
-  final String id;
-  final DateTime date;
-  final int moodIndex; // 0-4: very sad to very happy
-  final String gratitude;
-  final List<Win> wins;
-  final String affirmation;
-  final List<String> routineIds; // completed routines
-  final List<String> supplementIds; // taken supplements
-  final String notes;
-  final DateTime createdAt;
-  final bool isSubmitted; // true = EoD is submitted and immutable
-  final bool isPerfectDay; // true = all routines & supplements completed
+@HiveType(typeId: 0)
+class JournalEntry extends HiveObject {
+  @HiveField(0)
+  late String id;
+
+  @HiveField(1)
+  late DateTime date;
+
+  @HiveField(2)
+  late int moodIndex; // 0-4: very sad to very happy
+
+  @HiveField(3)
+  late String gratitude;
+
+  @HiveField(4)
+  late List<Win> wins;
+
+  @HiveField(5)
+  late String affirmation;
+
+  @HiveField(6)
+  late List<String> routineIds; // completed routines
+
+  @HiveField(7)
+  late List<String> supplementIds; // taken supplements
+
+  @HiveField(8)
+  late String notes;
+
+  @HiveField(9)
+  late DateTime createdAt;
+
+  @HiveField(10)
+  late bool isSubmitted; // true = EoD is submitted and immutable
+
+  @HiveField(11)
+  late bool isPerfectDay; // true = all routines & supplements completed
 
   JournalEntry({
     required this.id,
@@ -62,10 +89,16 @@ class JournalEntry {
   }
 }
 
-class Win {
-  final String id;
-  final String text;
-  final bool isHighlighted;
+@HiveType(typeId: 1)
+class Win extends HiveObject {
+  @HiveField(0)
+  late String id;
+
+  @HiveField(1)
+  late String text;
+
+  @HiveField(2)
+  late bool isHighlighted;
 
   Win({required this.id, required this.text, required this.isHighlighted});
 
@@ -80,13 +113,22 @@ class Win {
 
 // ─────────────────── NOTIFIERS ───────────────────
 
-class JournalNotifier extends StateNotifier<List<JournalEntry>> {
-  JournalNotifier() : super([]) {
-    _initializeMockData();
+class JournalNotifier extends StateNotifier<AsyncValue<List<JournalEntry>>> {
+  final Box<JournalEntry> journalBox;
+
+  JournalNotifier(this.journalBox)
+    : super(AsyncValue.data(journalBox.values.toList())) {
+    _initializeIfEmpty();
   }
 
-  void _initializeMockData() {
-    state = [
+  void _initializeIfEmpty() {
+    if (journalBox.isEmpty) {
+      // _addMockData();
+    }
+  }
+
+  /*  void _addMockData() {
+    final mockEntries = [
       JournalEntry(
         id: '1',
         date: DateTime.now().subtract(const Duration(days: 1)),
@@ -176,28 +218,27 @@ class JournalNotifier extends StateNotifier<List<JournalEntry>> {
         isPerfectDay: true,
       ),
     ];
-  }
+
+    for (final entry in mockEntries) {
+      journalBox.put(entry.id, entry);
+    }
+
+    state = AsyncValue.data(journalBox.values.toList());
+  } */
 
   void saveJournalEntry(JournalEntry entry) {
-    final index = state.indexWhere((e) => e.id == entry.id);
-    if (index != -1) {
-      // Update existing (only for drafts before submission)
-      state = [
-        for (int i = 0; i < state.length; i++) i == index ? entry : state[i],
-      ];
-    } else {
-      // Add new entry
-      state = [entry, ...state];
-    }
+    journalBox.put(entry.id, entry);
+    _updateState();
   }
 
   void deleteJournalEntry(String id) {
-    state = state.where((e) => e.id != id).toList();
+    journalBox.delete(id);
+    _updateState();
   }
 
   JournalEntry? getEntryForDate(DateTime date) {
     try {
-      return state.firstWhere(
+      return journalBox.values.firstWhere(
         (e) =>
             e.date.year == date.year &&
             e.date.month == date.month &&
@@ -208,20 +249,24 @@ class JournalNotifier extends StateNotifier<List<JournalEntry>> {
     }
   }
 
+  void _updateState() {
+    state = AsyncValue.data(journalBox.values.toList());
+  }
+
   // Calculate main streak (consecutive days with at least submitted EoD)
   int calculateMainStreak() {
-    if (state.isEmpty) return 0;
+    final entries = journalBox.values.toList();
+    if (entries.isEmpty) return 0;
 
     // Sort by date descending (most recent first)
-    final sorted = List<JournalEntry>.from(state)
-      ..sort((a, b) => b.date.compareTo(a.date));
+    entries.sort((a, b) => b.date.compareTo(a.date));
 
     int streak = 0;
     DateTime checkDate = DateTime.now();
 
     // Start from yesterday if today has no entry, or from today if it does
     bool hasEntryForToday = false;
-    for (final entry in sorted) {
+    for (final entry in entries) {
       if (_isSameDay(entry.date, checkDate) && entry.isSubmitted) {
         hasEntryForToday = true;
         streak = 1;
@@ -236,7 +281,7 @@ class JournalNotifier extends StateNotifier<List<JournalEntry>> {
     }
 
     // Count consecutive days backwards
-    for (final entry in sorted) {
+    for (final entry in entries) {
       if (_isSameDay(entry.date, checkDate) && entry.isSubmitted) {
         streak++;
         checkDate = checkDate.subtract(const Duration(days: 1));
@@ -251,22 +296,24 @@ class JournalNotifier extends StateNotifier<List<JournalEntry>> {
 
   // Calculate perfect days count
   int calculatePerfectDaysCount() {
-    return state.where((e) => e.isPerfectDay && e.isSubmitted).length;
+    return journalBox.values
+        .where((e) => e.isPerfectDay && e.isSubmitted)
+        .length;
   }
 
   // Get best streak (all-time)
   int calculateBestStreak() {
-    if (state.isEmpty) return 0;
+    final entries = journalBox.values.toList();
+    if (entries.isEmpty) return 0;
 
     // Sort by date
-    final sorted = List<JournalEntry>.from(state)
-      ..sort((a, b) => a.date.compareTo(b.date));
+    entries.sort((a, b) => a.date.compareTo(b.date));
 
     int bestStreak = 0;
     int currentStreak = 0;
     DateTime? lastDate;
 
-    for (final entry in sorted) {
+    for (final entry in entries) {
       if (!entry.isSubmitted) {
         currentStreak = 0;
         lastDate = null;
@@ -301,7 +348,7 @@ class JournalNotifier extends StateNotifier<List<JournalEntry>> {
   // Calculate perfect days in current month
   int calculatePerfectDaysCurrentMonth() {
     final now = DateTime.now();
-    return state
+    return journalBox.values
         .where(
           (e) =>
               e.isPerfectDay &&
@@ -314,12 +361,13 @@ class JournalNotifier extends StateNotifier<List<JournalEntry>> {
 
   // Calculate average perfect days per month
   double calculateAvgPerfectDaysPerMonth() {
-    if (state.isEmpty) return 0.0;
+    final entries = journalBox.values.toList();
+    if (entries.isEmpty) return 0.0;
 
     // Group perfect days by month/year
     final Map<String, int> monthMap = {};
 
-    for (final entry in state) {
+    for (final entry in entries) {
       if (entry.isPerfectDay && entry.isSubmitted) {
         final key = '${entry.date.year}-${entry.date.month}';
         monthMap[key] = (monthMap[key] ?? 0) + 1;
@@ -333,13 +381,17 @@ class JournalNotifier extends StateNotifier<List<JournalEntry>> {
 }
 
 final journalProvider =
-    StateNotifierProvider<JournalNotifier, List<JournalEntry>>(
-      (ref) => JournalNotifier(),
-    );
+    StateNotifierProvider<JournalNotifier, AsyncValue<List<JournalEntry>>>((
+      ref,
+    ) {
+      final journalBox = Hive.box<JournalEntry>('journal');
+      return JournalNotifier(journalBox);
+    });
 
 final journalEntryByDateProvider =
     FutureProvider.family<JournalEntry?, DateTime>((ref, date) async {
-      final entries = ref.watch(journalProvider);
+      final asyncEntries = ref.watch(journalProvider);
+      final entries = asyncEntries.value ?? [];
       try {
         return entries.firstWhere(
           (e) =>
@@ -518,17 +570,19 @@ final todaysEntryProvider = Provider<JournalEntry?>((ref) {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
 
-  try {
-    return entries.firstWhere(
-      (e) =>
-          e.date.year == today.year &&
-          e.date.month == today.month &&
-          e.date.day == today.day &&
-          e.isSubmitted,
-    );
-  } catch (e) {
-    return null;
-  }
+  return entries.whenData((data) {
+    try {
+      return data.firstWhere(
+        (e) =>
+            e.date.year == today.year &&
+            e.date.month == today.month &&
+            e.date.day == today.day &&
+            e.isSubmitted,
+      );
+    } catch (e) {
+      return null;
+    }
+  }).valueOrNull;
 });
 
 // Provider to get main streak

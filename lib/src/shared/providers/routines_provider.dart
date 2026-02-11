@@ -1,13 +1,30 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:hive/hive.dart';
 
-class Routine {
-  final String id;
-  final String name;
-  final String frequency;
-  final String timeOfDay;
-  final String duration;
-  final bool reminderEnabled;
-  final String icon;
+part 'routines_provider.g.dart';
+
+@HiveType(typeId: 3)
+class Routine extends HiveObject {
+  @HiveField(0)
+  late String id;
+
+  @HiveField(1)
+  late String name;
+
+  @HiveField(2)
+  late String frequency;
+
+  @HiveField(3)
+  late String timeOfDay;
+
+  @HiveField(4)
+  late String duration;
+
+  @HiveField(5)
+  late bool reminderEnabled;
+
+  @HiveField(6)
+  late String icon;
 
   Routine({
     required this.id,
@@ -40,13 +57,22 @@ class Routine {
   }
 }
 
-class RoutineNotifier extends StateNotifier<List<Routine>> {
-  RoutineNotifier() : super([]) {
-    _initializeMockData();
+class RoutineNotifier extends StateNotifier<AsyncValue<List<Routine>>> {
+  final Box<Routine> routineBox;
+
+  RoutineNotifier(this.routineBox)
+    : super(AsyncValue.data(routineBox.values.toList())) {
+    _initializeIfEmpty();
   }
 
-  void _initializeMockData() {
-    state = [
+  void _initializeIfEmpty() {
+    if (routineBox.isEmpty) {
+      // _addMockData();
+    }
+  }
+
+  /*   void _addMockData() {
+    final mockRoutines = [
       Routine(
         id: 'r1',
         name: 'Morning Meditation',
@@ -75,42 +101,51 @@ class RoutineNotifier extends StateNotifier<List<Routine>> {
         icon: '🏋️',
       ),
     ];
-  }
+
+    for (final routine in mockRoutines) {
+      routineBox.put(routine.id, routine);
+    }
+
+    _updateState();
+  } */
 
   void addOrUpdateRoutine(Routine routine) {
-    final index = state.indexWhere((r) => r.id == routine.id);
-    if (index != -1) {
-      state = [
-        for (int i = 0; i < state.length; i++)
-          i == index ? routine : state[i],
-      ];
-    } else {
-      state = [...state, routine];
-    }
+    routineBox.put(routine.id, routine);
+    _updateState();
   }
 
   void deleteRoutine(String id) {
-    state = state.where((r) => r.id != id).toList();
+    routineBox.delete(id);
+    _updateState();
+  }
+
+  void _updateState() {
+    state = AsyncValue.data(routineBox.values.toList());
   }
 }
 
 final routineProvider =
-    StateNotifierProvider<RoutineNotifier, List<Routine>>(
-  (ref) => RoutineNotifier(),
+    StateNotifierProvider<RoutineNotifier, AsyncValue<List<Routine>>>((ref) {
+      final routineBox = Hive.box<Routine>('routines');
+      return RoutineNotifier(routineBox);
+    });
+
+final routinesByTimeProvider = Provider<AsyncValue<Map<String, List<Routine>>>>(
+  (ref) {
+    final routinesAsync = ref.watch(routineProvider);
+
+    return routinesAsync.whenData((routines) {
+      final routinesByTime = <String, List<Routine>>{};
+
+      for (final routine in routines) {
+        final timeLabel = routine.timeOfDay;
+        if (!routinesByTime.containsKey(timeLabel)) {
+          routinesByTime[timeLabel] = [];
+        }
+        routinesByTime[timeLabel]!.add(routine);
+      }
+
+      return routinesByTime;
+    });
+  },
 );
-
-final routinesByTimeProvider =
-    Provider<Map<String, List<Routine>>>((ref) {
-  final routines = ref.watch(routineProvider);
-  final routinesByTime = <String, List<Routine>>{};
-
-  for (final routine in routines) {
-    final timeLabel = routine.timeOfDay;
-    if (!routinesByTime.containsKey(timeLabel)) {
-      routinesByTime[timeLabel] = [];
-    }
-    routinesByTime[timeLabel]!.add(routine);
-  }
-
-  return routinesByTime;
-});

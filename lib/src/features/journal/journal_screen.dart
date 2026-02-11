@@ -12,42 +12,59 @@ import 'package:focus/constants/app_sizes.dart';
 
 class JournalScreen extends HookConsumerWidget {
   final String? entryId; // ID passed from history screen
-  
+
   const JournalScreen({super.key, this.entryId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final entries = ref.watch(journalProvider);
-    
+    final entriesAsync = ref.watch(journalProvider);
+
     // If entryId is provided, find that specific entry
     // Otherwise, display the most recent SUBMITTED entry
     JournalEntry? entry;
-    
-    if (entryId != null) {
-      try {
-        entry = entries.firstWhere((e) => e.id == entryId);
-      } catch (e) {
-        entry = null;
-      }
-    } else {
-      final submittedEntries = entries.where((e) => e.isSubmitted).toList()
-        ..sort((a, b) => b.date.compareTo(a.date));
-      entry = submittedEntries.isNotEmpty ? submittedEntries.first : null;
-    }
 
-    if (entry == null) {
-      return Scaffold(
+    return entriesAsync.when(
+      data: (entries) {
+        if (entryId != null) {
+          try {
+            entry = entries.firstWhere((e) => e.id == entryId);
+          } catch (e) {
+            entry = null;
+          }
+        } else {
+          final submittedEntries = entries.where((e) => e.isSubmitted).toList()
+            ..sort((a, b) => b.date.compareTo(a.date));
+          entry = submittedEntries.isNotEmpty ? submittedEntries.first : null;
+        }
+
+        if (entry == null) {
+          return Scaffold(
+            backgroundColor: AppColors.bg,
+            body: Center(
+              child: Text(
+                'No journal entries found',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            ),
+          );
+        }
+
+        return _JournalDetailView(entry: entry!);
+      },
+      loading: () => Scaffold(
+        backgroundColor: AppColors.bg,
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (err, stack) => Scaffold(
         backgroundColor: AppColors.bg,
         body: Center(
           child: Text(
-            'No journal entries found',
+            'Error loading journal entries',
             style: TextStyle(color: AppColors.textSecondary),
           ),
         ),
-      );
-    }
-
-    return _JournalDetailView(entry: entry);
+      ),
+    );
   }
 }
 

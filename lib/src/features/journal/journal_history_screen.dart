@@ -63,33 +63,45 @@ class JournalHistoryScreen extends HookConsumerWidget {
             ),
             // Scrollable Entries
             Expanded(
-              child: entries.where((e) => e.isSubmitted).isEmpty
-                  ? Center(
+              child: entries.when(
+                data: (entryList) {
+                  final submittedEntries =
+                      entryList.where((e) => e.isSubmitted).toList()
+                        ..sort((a, b) => b.date.compareTo(a.date));
+                  if (submittedEntries.isEmpty) {
+                    return Center(
                       child: Text(
                         'No journal entries yet',
                         style: TextStyle(color: AppColors.textSecondary),
                       ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(
-                        Sizes.p20,
-                        Sizes.p20,
-                        Sizes.p20,
-                        Sizes.p32,
-                      ),
-                      itemCount: entries.where((e) => e.isSubmitted).length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(height: Sizes.p16),
-                      itemBuilder: (context, index) {
-                        final submittedEntries =
-                            entries.where((e) => e.isSubmitted).toList()
-                              ..sort((a, b) => b.date.compareTo(a.date));
-                        return _HistoryCard(
-                          entry: submittedEntries[index],
-                          context: context,
-                        );
-                      },
+                    );
+                  }
+                  return ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(
+                      Sizes.p20,
+                      Sizes.p20,
+                      Sizes.p20,
+                      Sizes.p32,
                     ),
+                    itemCount: submittedEntries.length,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: Sizes.p16),
+                    itemBuilder: (context, index) {
+                      return _HistoryCard(
+                        entry: submittedEntries[index],
+                        context: context,
+                      );
+                    },
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (err, stack) => Center(
+                  child: Text(
+                    'Failed to load journal entries',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                ),
+              ),
             ),
           ],
         ),

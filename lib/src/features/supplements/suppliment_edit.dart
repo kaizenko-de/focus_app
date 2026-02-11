@@ -17,7 +17,7 @@ class SupplementEditScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final supplements = ref.watch(supplementProvider);
+    final supplementsAsync = ref.watch(supplementProvider);
 
     // Convert time string to enum
     SuppTime _convertTimeToEnum(String time) {
@@ -31,12 +31,17 @@ class SupplementEditScreen extends HookConsumerWidget {
       }
     }
 
-    final existing = supplementId != null
-        ? supplements.cast<Supplement?>().firstWhere(
-            (r) => r?.id == supplementId,
-            orElse: () => null,
-          )
-        : null;
+    // Get existing supplement data
+    Supplement? existing;
+    supplementsAsync.whenData((supplements) {
+      if (supplementId != null) {
+        try {
+          existing = supplements.firstWhere((r) => r.id == supplementId);
+        } catch (e) {
+          existing = null;
+        }
+      }
+    });
 
     final nameController = useTextEditingController(text: existing?.name ?? '');
     final dosageController = useTextEditingController(
@@ -349,13 +354,13 @@ class SupplementEditScreen extends HookConsumerWidget {
                       final shouldDelete = await showDeleteConfirmationModal(
                         context,
                         deleteType: "Suppliment",
-                        itemName: existing.name,
+                        itemName: existing?.name ?? "",
                         subtitle: 'This action cannot be undone.',
                       );
                       if (shouldDelete == true && context.mounted) {
                         ref
                             .read(supplementProvider.notifier)
-                            .deleteSupplement(existing.id);
+                            .deleteSupplement(existing!.id);
                         context.pop();
                       }
                     },

@@ -52,11 +52,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       initialPage: (selectedDate.year - _startYear) + (_infiniteOffset * 30),
     );
     _monthPageCtrl = PageController(
-      viewportFraction: 0.18,
+      viewportFraction: 0.16,
       initialPage: (selectedDate.month - 1) + (_infiniteOffset * 12),
     );
     _dayPageCtrl = PageController(
-      viewportFraction: 0.15,
+      viewportFraction: 0.11,
       initialPage: (selectedDate.day - 1) + (_infiniteOffset * 31),
     );
   }
@@ -73,29 +73,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final mainStreak = ref.watch(mainStreakProvider);
     final todaysEntry = ref.watch(todaysEntryProvider);
-    final routines = ref.watch(routineProvider);
-    final supplements = ref.watch(supplementProvider);
+    final routinesAsync = ref.watch(routineProvider);
+    final supplementsAsync = ref.watch(supplementProvider);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            gapH32,
-            _buildDatePicker(),
-            gapH16,
-            _divider(margin: 20),
-            gapH24,
-            _buildCurrentStreak(mainStreak, todaysEntry, context),
-            gapH24,
-            _divider(margin: 20),
-            gapH24,
-            _buildStatsFlat(),
-            gapH32,
-            _buildTrackingCards(todaysEntry, routines, supplements),
-            gapH48,
-          ],
+      body: routinesAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(child: Text('Error: $err')),
+        data: (routines) => supplementsAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, stack) => Center(child: Text('Error: $err')),
+          data: (supplements) => SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                gapH32,
+                _buildDatePicker(),
+                gapH16,
+                _divider(margin: 20),
+                gapH24,
+                _buildCurrentStreak(mainStreak, todaysEntry, context),
+                gapH24,
+                _divider(margin: 20),
+                gapH24,
+                _buildStatsFlat(),
+                gapH32,
+                _buildTrackingCards(todaysEntry, routines, supplements),
+                gapH48,
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -104,12 +112,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   // ─────────────────── DATE PICKER ───────────────────
 
   Widget _buildDatePicker() {
-    final entries = ref.watch(journalProvider);
+    final entriesAsync = ref.watch(journalProvider);
     final daysInMonth = DateTime(
       selectedDate.year,
       selectedDate.month + 1,
       0,
     ).day;
+
+    // Default empty list for entries
+    final entries = entriesAsync.whenData((data) => data).valueOrNull ?? [];
 
     return Column(
       children: [

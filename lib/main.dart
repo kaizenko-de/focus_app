@@ -1,9 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'src/router/app_router.dart';
 import 'constants/app_colors.dart';
+import 'src/shared/providers/journey_provider.dart';
+import 'src/shared/providers/suppliments_provider.dart';
+import 'src/shared/providers/routines_provider.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Hive
+  await Hive.initFlutter();
+  
+  // Register all Hive type adapters
+  Hive.registerAdapter(JournalEntryAdapter());
+  Hive.registerAdapter(WinAdapter());
+  Hive.registerAdapter(SupplementAdapter());
+  Hive.registerAdapter(RoutineAdapter());
+  
+  // Open all Hive boxes
+  await Hive.openBox<JournalEntry>('journal');
+  await Hive.openBox<Supplement>('supplements');
+  await Hive.openBox<Routine>('routines');
+  
   runApp(ProviderScope(child: const MyApp()));
 }
 

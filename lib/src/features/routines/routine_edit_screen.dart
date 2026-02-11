@@ -55,10 +55,14 @@ class RoutineEditScreen extends HookConsumerWidget {
 
     final routines = ref.watch(routineProvider);
     final existing = routineId != null
-        ? routines.cast<Routine?>().firstWhere(
-            (r) => r?.id == routineId,
-            orElse: () => null,
-          )
+        ? routines
+              .whenData(
+                (data) => data.cast<Routine?>().firstWhere(
+                  (r) => r?.id == routineId,
+                  orElse: () => null,
+                ),
+              )
+              .value
         : null;
 
     final nameController = useTextEditingController(text: existing?.name ?? '');

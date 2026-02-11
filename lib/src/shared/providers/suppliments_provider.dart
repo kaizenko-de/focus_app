@@ -1,13 +1,30 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
+import 'package:hive/hive.dart';
 
-class Supplement {
-  final String id;
-  final String name;
-  final String dosage;
-  final String timeOfDay;
-  final String frequency;
-  final bool reminderEnabled;
-  final String icon;
+part 'suppliments_provider.g.dart';
+
+@HiveType(typeId: 2)
+class Supplement extends HiveObject {
+  @HiveField(0)
+  late String id;
+
+  @HiveField(1)
+  late String name;
+
+  @HiveField(2)
+  late String dosage;
+
+  @HiveField(3)
+  late String timeOfDay;
+
+  @HiveField(4)
+  late String frequency;
+
+  @HiveField(5)
+  late bool reminderEnabled;
+
+  @HiveField(6)
+  late String icon;
 
   Supplement({
     required this.id,
@@ -40,13 +57,22 @@ class Supplement {
   }
 }
 
-class SupplementNotifier extends StateNotifier<List<Supplement>> {
-  SupplementNotifier() : super([]) {
-    _initializeMockData();
+class SupplementNotifier extends StateNotifier<AsyncValue<List<Supplement>>> {
+  final Box<Supplement> supplementBox;
+
+  SupplementNotifier(this.supplementBox)
+    : super(AsyncValue.data(supplementBox.values.toList())) {
+    _initializeIfEmpty();
   }
 
-  void _initializeMockData() {
-    state = [
+  void _initializeIfEmpty() {
+    if (supplementBox.isEmpty) {
+      // _addMockData();
+    }
+  }
+
+  /*   void _addMockData() {
+    final mockSupplements = [
       Supplement(
         id: 's1',
         name: 'Magnesium',
@@ -84,43 +110,52 @@ class SupplementNotifier extends StateNotifier<List<Supplement>> {
         icon: '💪',
       ),
     ];
-  }
+
+    for (final supplement in mockSupplements) {
+      supplementBox.put(supplement.id, supplement);
+    }
+
+    _updateState();
+  } */
 
   void addOrUpdateSupplement(Supplement supplement) {
-    final index = state.indexWhere((s) => s.id == supplement.id);
-    if (index != -1) {
-      state = [
-        for (int i = 0; i < state.length; i++)
-          i == index ? supplement : state[i],
-      ];
-    } else {
-      state = [...state, supplement];
-    }
+    supplementBox.put(supplement.id, supplement);
+    _updateState();
   }
 
   void deleteSupplement(String id) {
-    state = state.where((s) => s.id != id).toList();
+    supplementBox.delete(id);
+    _updateState();
+  }
+
+  void _updateState() {
+    state = AsyncValue.data(supplementBox.values.toList());
   }
 }
 
 final supplementProvider =
-    StateNotifierProvider<SupplementNotifier, List<Supplement>>(
-      (ref) => SupplementNotifier(),
-    );
+    StateNotifierProvider<SupplementNotifier, AsyncValue<List<Supplement>>>((
+      ref,
+    ) {
+      final supplementBox = Hive.box<Supplement>('supplements');
+      return SupplementNotifier(supplementBox);
+    });
 
 // Group supplements by time of day
-final supplementsByTimeProvider = Provider<Map<String, List<Supplement>>>((
-  ref,
-) {
-  final supplements = ref.watch(supplementProvider);
-  final grouped = <String, List<Supplement>>{};
+final supplementsByTimeProvider =
+    Provider<AsyncValue<Map<String, List<Supplement>>>>((ref) {
+      final supplementsAsync = ref.watch(supplementProvider);
 
-  for (var supplement in supplements) {
-    if (!grouped.containsKey(supplement.timeOfDay)) {
-      grouped[supplement.timeOfDay] = [];
-    }
-    grouped[supplement.timeOfDay]!.add(supplement);
-  }
+      return supplementsAsync.whenData((supplements) {
+        final grouped = <String, List<Supplement>>{};
 
-  return grouped;
-});
+        for (var supplement in supplements) {
+          if (!grouped.containsKey(supplement.timeOfDay)) {
+            grouped[supplement.timeOfDay] = [];
+          }
+          grouped[supplement.timeOfDay]!.add(supplement);
+        }
+
+        return grouped;
+      });
+    });

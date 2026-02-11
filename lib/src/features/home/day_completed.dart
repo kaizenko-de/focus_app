@@ -15,8 +15,8 @@ class DayCompletedScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final todaysEntry = ref.watch(todaysEntryProvider);
-    final routines = ref.watch(routineProvider);
-    final supplements = ref.watch(supplementProvider);
+    final routinesAsync = ref.watch(routineProvider);
+    final supplementsAsync = ref.watch(supplementProvider);
 
     if (todaysEntry == null) {
       return Scaffold(
@@ -30,58 +30,73 @@ class DayCompletedScreen extends ConsumerWidget {
       );
     }
 
-    final completedRoutines = todaysEntry.routineIds.length;
-    final completedSupplements = todaysEntry.supplementIds.length;
-    final routineProgress = routines.isEmpty ? 0.0 : completedRoutines / routines.length;
-    final supplementProgress = supplements.isEmpty ? 0.0 : completedSupplements / supplements.length;
+    return routinesAsync.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (err, stack) => Scaffold(
+        body: Center(child: Text('Error: $err')),
+      ),
+      data: (routines) => supplementsAsync.when(
+        loading: () => const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        ),
+        error: (err, stack) => Scaffold(
+          body: Center(child: Text('Error: $err')),
+        ),
+        data: (supplements) {
+          final completedRoutines = todaysEntry.routineIds.length;
+          final completedSupplements = todaysEntry.supplementIds.length;
+          final routineProgress = routines.isEmpty ? 0.0 : completedRoutines / routines.length;
+          final supplementProgress = supplements.isEmpty ? 0.0 : completedSupplements / supplements.length;
 
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            gapH24,
-
-            // ───────── HEADER ─────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Sizes.p20),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.start,
+          return Scaffold(
+            backgroundColor: AppColors.bg,
+            body: SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Expanded(
-                    child: Text(
-                      'Today Completed',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    height: 28,
-                    width: 28,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.success, width: 2),
-                    ),
-                    child: const Icon(
-                      Icons.check,
-                      size: 16,
-                      color: AppColors.success,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+                  gapH24,
 
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Sizes.p20),
-              child: Text(
-                _getDateString(todaysEntry.date),
-                style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
-              ),
+                  // ───────── HEADER ─────────
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: Sizes.p20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Today Completed',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          height: 28,
+                          width: 28,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.success, width: 2),
+                          ),
+                          child: const Icon(
+                            Icons.check,
+                            size: 16,
+                            color: AppColors.success,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: Sizes.p20),
+                    child: Text(
+                      _getDateString(todaysEntry.date),
+                      style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+                    ),
             ),
 
             gapH24,
@@ -119,6 +134,9 @@ class DayCompletedScreen extends ConsumerWidget {
             // ───────── CARDS ─────────
           ],
         ),
+      ),
+            );
+        },
       ),
     );
   }

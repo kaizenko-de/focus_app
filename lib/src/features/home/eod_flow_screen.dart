@@ -18,8 +18,8 @@ class EoDFlowScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final draftState = ref.watch(draftJournalProvider);
-    final routines = ref.watch(routineProvider);
-    final supplements = ref.watch(supplementProvider);
+    final routinesAsync = ref.watch(routineProvider);
+    final supplementsAsync = ref.watch(supplementProvider);
 
     return WillPopScope(
       onWillPop: () async {
@@ -28,85 +28,108 @@ class EoDFlowScreen extends HookConsumerWidget {
         }
         return true;
       },
-      child: Scaffold(
+      child: routinesAsync.when(
+        loading: () =>
+            const Scaffold(body: Center(child: CircularProgressIndicator())),
+        error: (err, stack) =>
+            Scaffold(body: Center(child: Text('Error: $err'))),
+        data: (routines) => supplementsAsync.when(
+          loading: () =>
+              const Scaffold(body: Center(child: CircularProgressIndicator())),
+          error: (err, stack) =>
+              Scaffold(body: Center(child: Text('Error: $err'))),
+          data: (supplements) =>
+              _buildEoDFlow(context, ref, draftState, routines, supplements),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEoDFlow(
+    BuildContext context,
+    WidgetRef ref,
+    DraftJournalEntry draftState,
+    List<Routine> routines,
+    List<Supplement> supplements,
+  ) {
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      appBar: AppBar(
         backgroundColor: AppColors.bg,
-        appBar: AppBar(
-          backgroundColor: AppColors.bg,
-          automaticallyImplyLeading: false,
-          title: TextButton(
-            child: Text("Cancel").textmdMedium.foregroundColor(Colors.white),
-            onPressed: () async {
-              if (draftState.hasChanges) {
-                final shouldDiscard = await _showUnsavedChangesDialog(
-                  context,
-                  ref,
-                );
-                if (shouldDiscard) {
-                  context.pop();
-                }
-              } else {
+        automaticallyImplyLeading: false,
+        title: TextButton(
+          child: Text("Cancel").textmdMedium.foregroundColor(Colors.white),
+          onPressed: () async {
+            if (draftState.hasChanges) {
+              final shouldDiscard = await _showUnsavedChangesDialog(
+                context,
+                ref,
+              );
+              if (shouldDiscard) {
                 context.pop();
               }
-            },
-          ),
+            } else {
+              context.pop();
+            }
+          },
+        ),
 
-          actions: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Sizes.p20),
-              child: Center(
-                child: GestureDetector(
-                  onTap: () => _saveEoD(context, ref),
-                  child: Text(
-                    'Save',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: Sizes.p20),
+            child: Center(
+              child: GestureDetector(
+                onTap: () => _saveEoD(context, ref),
+                child: Text(
+                  'Save',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
             ),
-          ],
-        ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: Sizes.p20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              gapH16,
-              Text(
-                _getDateString(),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-              gapH24,
-              _buildSectionHeader('REFLECTION'),
-              gapH8,
-              _buildSectionHeader('MOOD', divider: false),
-              gapH8,
-
-              _buildMoodSelector(ref, draftState),
-              gapH24,
-              _buildGratitudeSection(ref, draftState),
-              gapH24,
-              _buildThreeWinsSection(ref, draftState),
-              gapH24,
-              _buildAffirmationSection(ref, draftState),
-              gapH32,
-              _buildSectionHeader('TRACKING'),
-              gapH24,
-              _buildRoutinesChecklist(routines, draftState, ref),
-              gapH24,
-              _buildSupplementsChecklist(supplements, draftState, ref),
-              gapH24,
-              _buildNotesSection(ref, draftState),
-              gapH32,
-            ],
           ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: Sizes.p20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            gapH16,
+            Text(
+              _getDateString(),
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+            gapH24,
+            _buildSectionHeader('REFLECTION'),
+            gapH8,
+            _buildSectionHeader('MOOD', divider: false),
+            gapH8,
+
+            _buildMoodSelector(ref, draftState),
+            gapH24,
+            _buildGratitudeSection(ref, draftState),
+            gapH24,
+            _buildThreeWinsSection(ref, draftState),
+            gapH24,
+            _buildAffirmationSection(ref, draftState),
+            gapH32,
+            _buildSectionHeader('TRACKING'),
+            gapH24,
+            _buildRoutinesChecklist(routines, draftState, ref),
+            gapH24,
+            _buildSupplementsChecklist(supplements, draftState, ref),
+            gapH24,
+            _buildNotesSection(ref, draftState),
+            gapH32,
+          ],
         ),
       ),
     );
@@ -620,14 +643,26 @@ class EoDFlowScreen extends HookConsumerWidget {
   }
 
   void _saveEoD(BuildContext context, WidgetRef ref) {
-    final routines = ref.read(routineProvider);
-    final supplements = ref.read(supplementProvider);
+    final routinesAsync = ref.read(routineProvider);
+    final supplementsAsync = ref.read(supplementProvider);
     final draftNotifier = ref.read(draftJournalProvider.notifier);
+
+    // Extract data from AsyncValue
+    int totalRoutines = 0;
+    int totalSupplements = 0;
+
+    routinesAsync.whenData((routines) {
+      totalRoutines = routines.length;
+    });
+
+    supplementsAsync.whenData((supplements) {
+      totalSupplements = supplements.length;
+    });
 
     // Submit the EoD (this saves it as an immutable journal entry)
     draftNotifier.submitEoD(
-      totalRoutines: routines.length,
-      totalSupplements: supplements.length,
+      totalRoutines: totalRoutines,
+      totalSupplements: totalSupplements,
     );
 
     // Navigate to day completed screen
