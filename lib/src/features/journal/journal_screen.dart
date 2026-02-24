@@ -171,7 +171,7 @@ class _JournalDetailViewState extends State<_JournalDetailView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '${days[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}',
+          '${days[date.weekday - 1]}, ${date.day} ${months[date.month - 1]} ${date.year}',
           style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.w700,

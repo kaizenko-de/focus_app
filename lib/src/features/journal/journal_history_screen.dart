@@ -153,96 +153,155 @@ class JournalHistoryScreen extends HookConsumerWidget {
   }
 }
 
-class _HistoryCard extends StatelessWidget {
+class _HistoryCard extends StatefulWidget {
   final JournalEntry entry;
   final BuildContext context;
 
   const _HistoryCard({required this.entry, required this.context});
 
   @override
+  State<_HistoryCard> createState() => _HistoryCardState();
+}
+
+class _HistoryCardState extends State<_HistoryCard> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
-    final topWin = entry.wins.isNotEmpty
-        ? entry.wins
+    final topWin = widget.entry.wins.isNotEmpty
+        ? widget.entry.wins
               .firstWhere(
                 (w) => w.isHighlighted,
-                orElse: () => entry.wins.first,
+                orElse: () => widget.entry.wins.first,
               )
               .text
         : 'No wins recorded';
 
-    final daysAgo = DateTime.now().difference(entry.date).inDays;
+    final daysAgo = DateTime.now().difference(widget.entry.date).inDays;
     final dateLabel = daysAgo == 0
         ? 'TODAY'
         : daysAgo == 1
         ? 'YESTERDAY'
-        : _getDayLabel(entry.date);
+        : _getDayLabel(widget.entry.date);
 
-    return InkWell(
-      onTap: () {
-        context.pushNamed(AppRoutes.journal.name, extra: entry.id);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(Sizes.p16),
-        decoration: BoxDecoration(
-          color: AppColors.bgCard,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  dateLabel,
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2,
+    return Container(
+      padding: const EdgeInsets.all(Sizes.p16),
+      decoration: BoxDecoration(
+        color: AppColors.bgCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Make the top part tappable to open full journal
+          GestureDetector(
+            onTap: () {
+              context.pushNamed(AppRoutes.journal.name, extra: widget.entry.id);
+            },
+            child: Container(
+              color: Colors.transparent,
+              width: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        dateLabel,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      Text(
+                        _getDateStr(widget.entry.date),
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                Text(
-                  _getDateStr(entry.date),
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                  const SizedBox(height: Sizes.p8),
+                  Text(
+                    'TOP WIN',
+                    style: TextStyle(
+                      color: AppColors.textSecondary.withOpacity(0.7),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.2,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: Sizes.p8),
-            Text(
-              'TOP WIN',
-              style: TextStyle(
-                color: AppColors.textSecondary.withOpacity(0.7),
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.2,
+                  const SizedBox(height: Sizes.p8),
+                  Text(
+                    topWin,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: Sizes.p10),
+                ],
               ),
             ),
-            const SizedBox(height: Sizes.p8),
-            Text(
-              topWin,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-            const SizedBox(height: Sizes.p10),
-            Row(
+          ),
+
+          // Expanded wins section
+          if (_expanded) ...[
+            ...widget.entry.wins.asMap().entries.map((winEntry) {
+              final index = winEntry.key;
+              final win = winEntry.value;
+              // Skip the first win since it's already shown as TOP WIN
+              if (index == 0) return const SizedBox.shrink();
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: Sizes.p12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        win.text,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                    if (win.isHighlighted)
+                      const Icon(Icons.star, color: AppColors.accent, size: 18),
+                  ],
+                ),
+              );
+            }).toList(),
+          ],
+
+          // Expand/Collapse button
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _expanded = !_expanded;
+              });
+            },
+            child: Row(
               children: [
                 Icon(
-                  Icons.keyboard_arrow_down,
+                  _expanded
+                      ? Icons.keyboard_arrow_up
+                      : Icons.keyboard_arrow_down,
                   color: AppColors.textSecondary,
                   size: 20,
                 ),
                 const SizedBox(width: Sizes.p4),
                 Text(
-                  'Show ${entry.wins.length > 1 ? entry.wins.length - 1 : 0} more Achievements',
+                  _expanded
+                      ? 'Show less'
+                      : 'View all ${widget.entry.wins.length} achievements',
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 13,
@@ -250,8 +309,8 @@ class _HistoryCard extends StatelessWidget {
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -284,6 +343,6 @@ class _HistoryCard extends StatelessWidget {
       'Nov',
       'Dec',
     ];
-    return '${months[date.month - 1]} ${date.day}';
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 }

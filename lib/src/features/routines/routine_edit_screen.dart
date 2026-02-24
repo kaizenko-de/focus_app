@@ -53,6 +53,9 @@ class RoutineEditScreen extends HookConsumerWidget {
       return List.filled(7, true); // Default
     }
 
+    // Available emojis for selection
+    final availableEmojis = ['💪', '🧠', '☀️', '🌙', '🏃', '🧘'];
+
     final routines = ref.watch(routineProvider);
     final existing = routineId != null
         ? routines
@@ -72,7 +75,13 @@ class RoutineEditScreen extends HookConsumerWidget {
     );
     final selectedTime = useState<String>(existing?.timeOfDay ?? '07:00 AM');
     final selectedDuration = useState<String>(existing?.duration ?? '30 mins');
+    final selectedEmoji = useState<String>(existing?.icon ?? '🧘');
+    final reminderEnabled = useState<bool>(existing?.reminderEnabled ?? false);
     final hasChanges = useState<bool>(false);
+
+    // Overlay controller for emoji picker
+    final overlayController = useMemoized(() => OverlayPortalController());
+    final emojiButtonKey = useMemoized(() => GlobalKey());
 
     // Helper to convert days to frequency string
     String _getFrequencyFromDays(List<bool> days) {
@@ -99,7 +108,7 @@ class RoutineEditScreen extends HookConsumerWidget {
       return selectedDayNames.join(', ');
     }
 
-    // Time Picker Logic (exact same as old UI)
+    // Time Picker Logic
     Future<void> _pickTime() async {
       final TimeOfDay? picked = await showTimePicker(
         context: context,
@@ -128,7 +137,29 @@ class RoutineEditScreen extends HookConsumerWidget {
       }
     }
 
-    // Wheel Duration Picker Logic (exact same as old UI)
+    // Helper to get emoji name
+    String _getEmojiName(String emoji) {
+      switch (emoji) {
+        case '😢':
+          return 'Sad';
+        case '☹️':
+          return 'Unhappy';
+        case '😐':
+          return 'Neutral';
+        case '🙂':
+          return 'Slightly Happy';
+        case '😄':
+          return 'Happy';
+        default:
+          return '';
+      }
+    }
+
+    void _trackChanges() {
+      hasChanges.value = true;
+    }
+
+    // Wheel Duration Picker Logic
     void _showDurationPicker() {
       final initialIndex = _getInitialDurationIndex(selectedDuration.value);
 
@@ -160,8 +191,110 @@ class RoutineEditScreen extends HookConsumerWidget {
       );
     }
 
-    void _trackChanges() {
-      hasChanges.value = true;
+    // Show emoji picker overlay
+    void _showEmojiPicker() {
+      final renderBox =
+          emojiButtonKey.currentContext?.findRenderObject() as RenderBox?;
+      if (renderBox == null) return;
+
+      final offset = renderBox.localToGlobal(Offset.zero);
+      final size = renderBox.size;
+
+      showDialog(
+        context: context,
+        barrierColor: Colors.transparent,
+        builder: (dialogContext) => Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () => Navigator.pop(dialogContext),
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+            Positioned(
+              top: offset.dy + size.height + 8,
+              left: offset.dx,
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  width: 200,
+                  decoration: BoxDecoration(
+                    color: AppColors.bgCard,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.bgBorderSecondary),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(77),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Text(
+                          'Choose an emoji',
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const Divider(
+                        color: AppColors.bgBorderSecondary,
+                        height: 1,
+                      ),
+                      ...availableEmojis.map(
+                        (emoji) => InkWell(
+                          onTap: () {
+                            selectedEmoji.value = emoji;
+                            hasChanges.value = true;
+                            Navigator.pop(dialogContext);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            child: Row(
+                              children: [
+                                Text(
+                                  emoji,
+                                  style: const TextStyle(fontSize: 24),
+                                ),
+                                const SizedBox(width: 42),
+                                /*   Text(
+                                  _getEmojiName(emoji),
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 14,
+                                  ),
+                                ), */
+                                if (selectedEmoji.value == emoji) ...[
+                                  // const Spacer(),
+                                  const Icon(
+                                    Icons.check,
+                                    color: AppColors.white,
+                                    size: 18,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     return WillPopScope(
@@ -205,8 +338,8 @@ class RoutineEditScreen extends HookConsumerWidget {
                     timeOfDay: selectedTime.value,
                     duration: selectedDuration.value,
                     frequency: _getFrequencyFromDays(selectedDays.value),
-                    reminderEnabled: existing?.reminderEnabled ?? false,
-                    icon: existing?.icon ?? '✨',
+                    reminderEnabled: reminderEnabled.value,
+                    icon: selectedEmoji.value,
                   );
                   ref
                       .read(routineProvider.notifier)
@@ -240,9 +373,26 @@ class RoutineEditScreen extends HookConsumerWidget {
               ),
               const SizedBox(height: 10),
 
-              Align(
-                alignment: Alignment.center,
-                child: Assets.images.routineAdd.image(height: 80, width: 80),
+              // Clickable emoji field
+              Center(
+                child: GestureDetector(
+                  key: emojiButtonKey,
+                  onTap: _showEmojiPicker,
+                  child: Container(
+                    height: 80,
+                    width: 80,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withAlpha(50),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        selectedEmoji.value,
+                        style: const TextStyle(fontSize: 40),
+                      ),
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
 
@@ -252,10 +402,8 @@ class RoutineEditScreen extends HookConsumerWidget {
                   color: Colors.transparent,
                   border: Border(
                     bottom: BorderSide(
-                      color: AppColors.textSecondary.withValues(
-                        alpha: 0.5,
-                      ), // change color as needed
-                      width: 1, // border thickness
+                      color: AppColors.textSecondary.withValues(alpha: 0.5),
+                      width: 1,
                     ),
                   ),
                 ),
@@ -279,8 +427,8 @@ class RoutineEditScreen extends HookConsumerWidget {
                     contentPadding: EdgeInsets.zero,
                     isCollapsed: true,
                     isDense: true,
-                    filled: true, // Add this
-                    fillColor: Colors.transparent, // Add this
+                    filled: true,
+                    fillColor: Colors.transparent,
                   ),
                   style: const TextStyle(
                     color: AppColors.textPrimary,
@@ -301,7 +449,7 @@ class RoutineEditScreen extends HookConsumerWidget {
               ),
 
               const SizedBox(height: 12),
-              // Day Selector (exact same as old UI)
+              // Day Selector
               _buildDaySelector(selectedDays, _trackChanges),
               const SizedBox(height: 32),
               const Text(
@@ -320,7 +468,7 @@ class RoutineEditScreen extends HookConsumerWidget {
                 selectedTime.value,
                 _pickTime,
               ),
-              // Duration Setting (exact same as old UI)
+              // Duration Setting
               _buildInteractiveSetting(
                 Icons.timer_outlined,
                 'Duration',
@@ -328,6 +476,7 @@ class RoutineEditScreen extends HookConsumerWidget {
                 _showDurationPicker,
               ),
 
+              // Reminder toggle with fixed color #c8a24a
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -351,7 +500,6 @@ class RoutineEditScreen extends HookConsumerWidget {
                         size: 20,
                       ),
                     ),
-
                     const SizedBox(width: 16),
                     const Expanded(
                       child: Text(
@@ -363,12 +511,14 @@ class RoutineEditScreen extends HookConsumerWidget {
                       ),
                     ),
                     Switch(
-                      value: existing?.reminderEnabled ?? false,
+                      value: reminderEnabled.value,
                       onChanged: (value) {
-                        // Note: This won't be saved unless you track it
-                        _trackChanges();
+                        reminderEnabled.value = value;
+                        hasChanges.value = true;
                       },
-                      activeColor: AppColors.primary,
+                      activeColor: const Color(
+                        0xFFc8a24a,
+                      ), // Updated to #c8a24a
                     ),
                   ],
                 ),
@@ -406,7 +556,7 @@ class RoutineEditScreen extends HookConsumerWidget {
     );
   }
 
-  // --- UI Helpers (exact same as old UI) ---
+  // --- UI Helpers ---
   Widget _buildDaySelector(
     ValueNotifier<List<bool>> selectedDays,
     VoidCallback onChanged,
@@ -480,7 +630,6 @@ class RoutineEditScreen extends HookConsumerWidget {
               ),
               child: Icon(icon, color: AppColors.textSecondary, size: 20),
             ),
-
             const SizedBox(width: 16),
             Text(
               label,

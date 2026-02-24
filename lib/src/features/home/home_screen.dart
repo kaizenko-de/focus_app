@@ -19,6 +19,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   late DateTime selectedDate;
+  late DateTime currentDate;
 
   late PageController _yearPageCtrl;
   late PageController _monthPageCtrl;
@@ -45,6 +46,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    currentDate = DateTime.now();
     selectedDate = DateTime.now();
 
     _yearPageCtrl = PageController(
@@ -55,9 +57,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       viewportFraction: 0.16,
       initialPage: (selectedDate.month - 1) + (_infiniteOffset * 12),
     );
+
+    // Calculate days in current month for proper offset
+    final daysInCurrentMonth = DateTime(
+      selectedDate.year,
+      selectedDate.month + 1,
+      0,
+    ).day;
     _dayPageCtrl = PageController(
       viewportFraction: 0.11,
-      initialPage: (selectedDate.day - 1) + (_infiniteOffset * 31),
+      initialPage:
+          (selectedDate.day - 1) + (_infiniteOffset * daysInCurrentMonth),
     );
   }
 
@@ -88,7 +98,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                gapH32,
+                gapH48,
                 _buildDatePicker(),
                 gapH16,
                 _divider(margin: 20),
@@ -110,7 +120,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   // ─────────────────── DATE PICKER ───────────────────
-
   Widget _buildDatePicker() {
     final entriesAsync = ref.watch(journalProvider);
     final daysInMonth = DateTime(
@@ -131,13 +140,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             final year = _startYear + (index % 30);
             if (selectedDate.year != year) {
               HapticFeedback.lightImpact();
-              setState(
-                () => selectedDate = DateTime(
-                  year,
-                  selectedDate.month,
-                  selectedDate.day,
-                ),
-              );
+
+              // Get current day and month
+              int currentMonth = selectedDate.month;
+              int currentDay = selectedDate.day;
+
+              // Check if day is valid in new year's month
+              int maxDaysInMonth = DateTime(year, currentMonth + 1, 0).day;
+              int newDay = currentDay > maxDaysInMonth
+                  ? maxDaysInMonth
+                  : currentDay;
+
+              setState(() {
+                selectedDate = DateTime(year, currentMonth, newDay);
+              });
             }
           },
           itemBuilder: (index, isSelected) =>
@@ -151,15 +167,32 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             final month = (index % 12) + 1;
             if (selectedDate.month != month) {
               HapticFeedback.lightImpact();
-              int d = selectedDate.day;
-              int maxD = DateTime(selectedDate.year, month + 1, 0).day;
-              setState(
-                () => selectedDate = DateTime(
-                  selectedDate.year,
-                  month,
-                  d > maxD ? maxD : d,
-                ),
-              );
+
+              // Get current day
+              int currentDay = selectedDate.day;
+
+              // Check if day is valid in new month
+              int maxDaysInNewMonth = DateTime(
+                selectedDate.year,
+                month + 1,
+                0,
+              ).day;
+              int newDay = currentDay > maxDaysInNewMonth
+                  ? maxDaysInNewMonth
+                  : currentDay;
+
+              setState(() {
+                // selectedDate = DateTime(
+                //   selectedDate.year,
+                //   month,
+                //   selectedDate.day,
+                // );
+
+                // Update day controller position to match the new day
+                // _dayPageCtrl.jumpToPage(
+                //   (newDay - 1) + (_infiniteOffset * maxDaysInNewMonth),
+                // );
+              });
             }
           },
           itemBuilder: (index, isSelected) =>
@@ -173,13 +206,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             final day = (index % daysInMonth) + 1;
             if (selectedDate.day != day) {
               HapticFeedback.lightImpact();
-              setState(
-                () => selectedDate = DateTime(
+              setState(() {
+                selectedDate = DateTime(
                   selectedDate.year,
                   selectedDate.month,
                   day,
-                ),
-              );
+                );
+              });
             }
           },
           itemBuilder: (index, isSelected) {

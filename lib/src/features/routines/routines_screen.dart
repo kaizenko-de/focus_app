@@ -196,7 +196,17 @@ class _RoutineCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Text(routine.icon, style: const TextStyle(fontSize: 24)),
+            Container(
+              height: 44,
+              width: 44,
+              decoration: BoxDecoration(
+                color: AppColors.bgBorderSecondary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: Text(routine.icon, style: const TextStyle(fontSize: 24)),
+              ),
+            ),
             const SizedBox(width: Sizes.p12),
             Expanded(
               child: Column(

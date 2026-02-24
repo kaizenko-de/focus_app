@@ -19,6 +19,20 @@ class SupplementEditScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final supplementsAsync = ref.watch(supplementProvider);
 
+    // Available emojis for selection
+    final availableEmojis = [
+      '💊',
+      '💉',
+      '🧪',
+      '💪',
+      '🧬',
+      '🌿',
+      '💧',
+      '⚡',
+      '❤️',
+      '🧠',
+    ];
+
     // Convert time string to enum
     SuppTime _convertTimeToEnum(String time) {
       switch (time.toLowerCase()) {
@@ -48,6 +62,9 @@ class SupplementEditScreen extends HookConsumerWidget {
       text: existing?.dosage ?? '',
     );
 
+    // Emoji picker key
+    final emojiButtonKey = useMemoized(() => GlobalKey());
+
     // Convert string time to enum for old UI
     final selectedTime = useState<SuppTime>(
       _convertTimeToEnum(existing?.timeOfDay ?? 'Morning'),
@@ -59,6 +76,7 @@ class SupplementEditScreen extends HookConsumerWidget {
           : [true, true, true, true, true, false, false],
     );
     final isReminderOn = useState<bool>(existing?.reminderEnabled ?? true);
+    final selectedEmoji = useState<String>(existing?.icon ?? '💊');
     final hasChanges = useState<bool>(false);
 
     // Convert enum to time string
@@ -96,6 +114,141 @@ class SupplementEditScreen extends HookConsumerWidget {
       if (selectedDayNames.length == 2 && days[5] && days[6]) return 'Weekends';
 
       return selectedDayNames.join(', ');
+    }
+
+    // Helper to get emoji name
+    String _getEmojiName(String emoji) {
+      switch (emoji) {
+        case '💊':
+          return 'Pill';
+        case '💉':
+          return 'Injection';
+        case '🧪':
+          return 'Lab';
+        case '💪':
+          return 'Strength';
+        case '🧬':
+          return 'DNA';
+        case '🌿':
+          return 'Herbal';
+        case '💧':
+          return 'Drops';
+        case '⚡':
+          return 'Energy';
+        case '❤️':
+          return 'Heart';
+        case '🧠':
+          return 'Brain';
+        default:
+          return '';
+      }
+    }
+
+    // Show emoji picker overlay
+    void _showEmojiPicker() {
+      final renderBox =
+          emojiButtonKey.currentContext?.findRenderObject() as RenderBox?;
+      if (renderBox == null) return;
+
+      final offset = renderBox.localToGlobal(Offset.zero);
+      final size = renderBox.size;
+
+      showDialog(
+        context: context,
+        barrierColor: Colors.transparent,
+        builder: (dialogContext) => Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: () => Navigator.pop(dialogContext),
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+            Positioned(
+              top: offset.dy + size.height + 8,
+              left: offset.dx,
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  width: 220,
+                  decoration: BoxDecoration(
+                    color: AppColors.bgCard,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.bgBorderSecondary),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(77),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Text(
+                          'Choose an icon',
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const Divider(
+                        color: AppColors.bgBorderSecondary,
+                        height: 1,
+                      ),
+                      ...availableEmojis.map(
+                        (emoji) => InkWell(
+                          onTap: () {
+                            selectedEmoji.value = emoji;
+                            hasChanges.value = true;
+                            Navigator.pop(dialogContext);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            child: Row(
+                              children: [
+                                Text(
+                                  emoji,
+                                  style: const TextStyle(fontSize: 24),
+                                ),
+                                // const SizedBox(width: 12),
+                                /*  Text(
+                                  _getEmojiName(emoji),
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 14,
+                                  ),
+                                ), */
+                                if (selectedEmoji.value == emoji) ...[
+                                  gapW16,
+                                  const Icon(
+                                    Icons.check,
+                                    color: AppColors.white,
+                                    size: 18,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     void _trackChanges() {
@@ -144,7 +297,7 @@ class SupplementEditScreen extends HookConsumerWidget {
                     timeOfDay: _convertEnumToTime(selectedTime.value),
                     frequency: _getFrequencyFromDays(selectedDays.value),
                     reminderEnabled: isReminderOn.value,
-                    icon: existing?.icon ?? '💊',
+                    icon: selectedEmoji.value,
                   );
                   ref
                       .read(supplementProvider.notifier)
@@ -169,7 +322,7 @@ class SupplementEditScreen extends HookConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Suppliments',
+                'Supplements',
                 style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 32,
@@ -178,22 +331,37 @@ class SupplementEditScreen extends HookConsumerWidget {
               ),
               const SizedBox(height: 20),
 
-              Align(
-                alignment: Alignment.center,
-                child: Assets.images.routineAdd.image(height: 80, width: 80),
+              // Clickable emoji field
+              Center(
+                child: GestureDetector(
+                  key: emojiButtonKey,
+                  onTap: _showEmojiPicker,
+                  child: Container(
+                    height: 80,
+                    width: 80,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withAlpha(50),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        selectedEmoji.value,
+                        style: const TextStyle(fontSize: 40),
+                      ),
+                    ),
+                  ),
+                ),
               ),
+              const SizedBox(height: 20),
 
-              const SizedBox(height: Sizes.p24),
               Container(
                 padding: const EdgeInsets.only(bottom: Sizes.p8),
                 decoration: BoxDecoration(
                   color: Colors.transparent,
                   border: Border(
                     bottom: BorderSide(
-                      color: AppColors.textSecondary.withValues(
-                        alpha: 0.5,
-                      ), // change color as needed
-                      width: 1, // border thickness
+                      color: AppColors.textSecondary.withValues(alpha: 0.5),
+                      width: 1,
                     ),
                   ),
                 ),
@@ -217,8 +385,8 @@ class SupplementEditScreen extends HookConsumerWidget {
                     contentPadding: EdgeInsets.zero,
                     isCollapsed: true,
                     isDense: true,
-                    filled: true, // Add this
-                    fillColor: Colors.transparent, // Add this
+                    filled: true,
+                    fillColor: Colors.transparent,
                   ),
                   style: const TextStyle(
                     color: AppColors.textPrimary,
@@ -233,10 +401,8 @@ class SupplementEditScreen extends HookConsumerWidget {
                   color: Colors.transparent,
                   border: Border(
                     bottom: BorderSide(
-                      color: AppColors.textSecondary.withValues(
-                        alpha: 0.5,
-                      ), // change color as needed
-                      width: 1, // border thickness
+                      color: AppColors.textSecondary.withValues(alpha: 0.5),
+                      width: 1,
                     ),
                   ),
                 ),
@@ -260,8 +426,8 @@ class SupplementEditScreen extends HookConsumerWidget {
                     contentPadding: EdgeInsets.zero,
                     isCollapsed: true,
                     isDense: true,
-                    filled: true, // Add this
-                    fillColor: Colors.transparent, // Add this
+                    filled: true,
+                    fillColor: Colors.transparent,
                   ),
                   style: const TextStyle(
                     color: AppColors.textPrimary,
@@ -271,7 +437,6 @@ class SupplementEditScreen extends HookConsumerWidget {
               ),
 
               const SizedBox(height: Sizes.p24),
-              // FREQUENCY (exact same as old UI)
               const Text(
                 'FREQUENCY',
                 style: TextStyle(
@@ -282,10 +447,8 @@ class SupplementEditScreen extends HookConsumerWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              // Day Selector (exact same as old UI)
               _buildDaySelector(selectedDays, _trackChanges),
               const SizedBox(height: Sizes.p32),
-              // TIME OF DAY (exact same as old UI)
               const Text(
                 'TIME OF DAY',
                 style: TextStyle(
@@ -296,7 +459,6 @@ class SupplementEditScreen extends HookConsumerWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              // Time Options (exact same as old UI)
               Row(
                 children: [
                   _timeOption(
@@ -325,7 +487,6 @@ class SupplementEditScreen extends HookConsumerWidget {
                 ],
               ),
               const SizedBox(height: Sizes.p32),
-              // SETTINGS (exact same as old UI)
               const Text(
                 'SETTINGS',
                 style: TextStyle(
@@ -336,7 +497,6 @@ class SupplementEditScreen extends HookConsumerWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              // Reminder Toggle (exact same as old UI)
               _buildToggleItem(
                 Icons.notifications_none,
                 'Reminder',
@@ -353,7 +513,7 @@ class SupplementEditScreen extends HookConsumerWidget {
                     onPressed: () async {
                       final shouldDelete = await showDeleteConfirmationModal(
                         context,
-                        deleteType: "Suppliment",
+                        deleteType: "Supplement",
                         itemName: existing?.name ?? "",
                         subtitle: 'This action cannot be undone.',
                       );
@@ -379,7 +539,7 @@ class SupplementEditScreen extends HookConsumerWidget {
     );
   }
 
-  // --- UI Helpers (exact same as old UI) ---
+  // --- UI Helpers ---
   Widget _buildDaySelector(
     ValueNotifier<List<bool>> selectedDays,
     VoidCallback onChanged,

@@ -13,7 +13,8 @@ class AppColors {
   static const Color iconGrey = Color(0xff94A3B8);
 
   // Brand colors
-  static const Color primary = Color(0xff1D56C9);
+  // static const Color primary = Color(0xff1D56C9);
+  static const Color primary = Color(0xffc8a24a);
 
   static const Color primaryLight = Color(0xff6b7beb);
   static const Color primaryDark = Color(0xff2a3fa8);
