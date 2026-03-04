@@ -29,13 +29,14 @@ class JournalEntryAdapter extends TypeAdapter<JournalEntry> {
       createdAt: fields[9] as DateTime,
       isSubmitted: fields[10] as bool,
       isPerfectDay: fields[11] as bool,
+      eodDate: fields[12] as DateTime?,
     );
   }
 
   @override
   void write(BinaryWriter writer, JournalEntry obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(13)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -59,7 +60,9 @@ class JournalEntryAdapter extends TypeAdapter<JournalEntry> {
       ..writeByte(10)
       ..write(obj.isSubmitted)
       ..writeByte(11)
-      ..write(obj.isPerfectDay);
+      ..write(obj.isPerfectDay)
+      ..writeByte(12)
+      ..write(obj.eodDate);
   }
 
   @override

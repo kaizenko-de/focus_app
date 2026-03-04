@@ -4,6 +4,7 @@ import 'package:focus/gen/assets.gen.dart';
 import 'package:focus/src/shared/providers/journey_provider.dart';
 import 'package:focus/src/shared/providers/routines_provider.dart';
 import 'package:focus/src/shared/providers/suppliments_provider.dart';
+import 'package:focus/src/router/app_router.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import '../../../constants/app_colors.dart';
@@ -31,24 +32,23 @@ class DayCompletedScreen extends ConsumerWidget {
     }
 
     return routinesAsync.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
-      error: (err, stack) => Scaffold(
-        body: Center(child: Text('Error: $err')),
-      ),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (err, stack) => Scaffold(body: Center(child: Text('Error: $err'))),
       data: (routines) => supplementsAsync.when(
-        loading: () => const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        ),
-        error: (err, stack) => Scaffold(
-          body: Center(child: Text('Error: $err')),
-        ),
+        loading: () =>
+            const Scaffold(body: Center(child: CircularProgressIndicator())),
+        error: (err, stack) =>
+            Scaffold(body: Center(child: Text('Error: $err'))),
         data: (supplements) {
           final completedRoutines = todaysEntry.routineIds.length;
           final completedSupplements = todaysEntry.supplementIds.length;
-          final routineProgress = routines.isEmpty ? 0.0 : completedRoutines / routines.length;
-          final supplementProgress = supplements.isEmpty ? 0.0 : completedSupplements / supplements.length;
+          final routineProgress = routines.isEmpty
+              ? 0.0
+              : completedRoutines / routines.length;
+          final supplementProgress = supplements.isEmpty
+              ? 0.0
+              : completedSupplements / supplements.length;
 
           return Scaffold(
             backgroundColor: AppColors.bg,
@@ -79,7 +79,10 @@ class DayCompletedScreen extends ConsumerWidget {
                           width: 28,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(color: AppColors.success, width: 2),
+                            border: Border.all(
+                              color: AppColors.success,
+                              width: 2,
+                            ),
                           ),
                           child: const Icon(
                             Icons.check,
@@ -95,47 +98,79 @@ class DayCompletedScreen extends ConsumerWidget {
                     padding: const EdgeInsets.symmetric(horizontal: Sizes.p20),
                     child: Text(
                       _getDateString(todaysEntry.date),
-                      style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
-                    ),
-            ),
-
-            gapH24,
-
-            // ───────── STAR ─────────
-            if (todaysEntry.isPerfectDay)
-              Align(
-                alignment: Alignment.center,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SvgPicture.asset(Assets.svg.star),
-
-                    gapH16,
-
-                    // ───────── PERFECT DAY ─────────
-                    const Text(
-                      'Perfect Day',
                       style: TextStyle(
-                        fontSize: 30,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        fontSize: 16,
+                        color: AppColors.textSecondary,
                       ),
                     ),
-                    gapH8,
-                    SvgPicture.asset(Assets.svg.gradientLine),
-                  ],
-                ),
+                  ),
+
+                  gapH16,
+
+                  // ───────── EDIT BUTTON ─────────
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: Sizes.p20),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () =>
+                            context.pushNamed(AppRoutes.eodFlow.name),
+                        icon: const Icon(Icons.edit, size: 18),
+                        label: const Text('Edit Today\'s EoD'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  gapH24,
+
+                  // ───────── STAR ─────────
+                  if (todaysEntry.isPerfectDay)
+                    Align(
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SvgPicture.asset(Assets.svg.star),
+
+                          gapH16,
+
+                          // ───────── PERFECT DAY ─────────
+                          const Text(
+                            'Perfect Day',
+                            style: TextStyle(
+                              fontSize: 30,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          gapH8,
+                          SvgPicture.asset(Assets.svg.gradientLine),
+                        ],
+                      ),
+                    ),
+
+                  gapH48,
+                  _buildTrackingCards(
+                    completedRoutines,
+                    routines.length,
+                    completedSupplements,
+                    supplements.length,
+                  ),
+
+                  // ───────── CARDS ─────────
+                ],
               ),
-
-            gapH48,
-            _buildTrackingCards(completedRoutines, routines.length, completedSupplements, supplements.length),
-
-            // ───────── CARDS ─────────
-          ],
-        ),
-      ),
-            );
+            ),
+          );
         },
       ),
     );
@@ -168,7 +203,12 @@ class DayCompletedScreen extends ConsumerWidget {
     return '${days[date.weekday - 1]}, ${date.day}th of ${months[date.month - 1]} ${date.year}';
   }
 
-  Widget _buildTrackingCards(int completedRoutines, int totalRoutines, int completedSupplements, int totalSupplements) {
+  Widget _buildTrackingCards(
+    int completedRoutines,
+    int totalRoutines,
+    int completedSupplements,
+    int totalSupplements,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: Sizes.p20),
       child: Column(
@@ -176,17 +216,23 @@ class DayCompletedScreen extends ConsumerWidget {
           _trackingCard(
             icon: Assets.images.routines,
             title: 'Routines',
-            subtitle: '${(completedRoutines / totalRoutines * 100).toStringAsFixed(0)}% completed',
+            subtitle:
+                '${(completedRoutines / totalRoutines * 100).toStringAsFixed(0)}% completed',
             value: '$completedRoutines/$totalRoutines',
-            progress: totalRoutines == 0 ? 0.0 : completedRoutines / totalRoutines,
+            progress: totalRoutines == 0
+                ? 0.0
+                : completedRoutines / totalRoutines,
           ),
           gapH24,
           _trackingCard(
             icon: Assets.images.suppliments,
             title: 'Supplements',
-            subtitle: '${(completedSupplements / totalSupplements * 100).toStringAsFixed(0)}% taken',
+            subtitle:
+                '${(completedSupplements / totalSupplements * 100).toStringAsFixed(0)}% taken',
             value: '$completedSupplements/$totalSupplements',
-            progress: totalSupplements == 0 ? 0.0 : completedSupplements / totalSupplements,
+            progress: totalSupplements == 0
+                ? 0.0
+                : completedSupplements / totalSupplements,
           ),
         ],
       ),

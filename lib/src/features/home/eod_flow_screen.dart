@@ -20,6 +20,26 @@ class EoDFlowScreen extends HookConsumerWidget {
     final draftState = ref.watch(draftJournalProvider);
     final routinesAsync = ref.watch(routineProvider);
     final supplementsAsync = ref.watch(supplementProvider);
+    final todaysEntry = ref.watch(todaysEntryProvider);
+
+    // Initialize draft with existing entry if available (edit mode) - run only once on first load
+    final hasInitialized = useRef(false);
+
+    useEffect(() {
+      if (!hasInitialized.value &&
+          todaysEntry != null &&
+          draftState.gratitude.isEmpty &&
+          draftState.affirmation.isEmpty &&
+          draftState.wins.isEmpty) {
+        hasInitialized.value = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref
+              .read(draftJournalProvider.notifier)
+              .loadExistingEntry(todaysEntry);
+        });
+      }
+      return null;
+    }, []);
 
     return WillPopScope(
       onWillPop: () async {
@@ -38,8 +58,14 @@ class EoDFlowScreen extends HookConsumerWidget {
               const Scaffold(body: Center(child: CircularProgressIndicator())),
           error: (err, stack) =>
               Scaffold(body: Center(child: Text('Error: $err'))),
-          data: (supplements) =>
-              _buildEoDFlow(context, ref, draftState, routines, supplements),
+          data: (supplements) => _buildEoDFlow(
+            context,
+            ref,
+            draftState,
+            routines,
+            supplements,
+            todaysEntry,
+          ),
         ),
       ),
     );
@@ -51,7 +77,9 @@ class EoDFlowScreen extends HookConsumerWidget {
     DraftJournalEntry draftState,
     List<Routine> routines,
     List<Supplement> supplements,
+    JournalEntry? existingEntry,
   ) {
+    final isEditMode = existingEntry != null;
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -100,11 +128,20 @@ class EoDFlowScreen extends HookConsumerWidget {
           children: [
             gapH16,
             Text(
-              _getDateString(),
+              isEditMode ? 'Edit today\'s EoD' : 'End of Day',
               style: const TextStyle(
-                fontSize: 20,
+                fontSize: 28,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
+              ),
+            ),
+            gapH8,
+            Text(
+              _getDateString(),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w400,
+                color: AppColors.textSecondary,
               ),
             ),
             gapH24,
@@ -201,6 +238,16 @@ class EoDFlowScreen extends HookConsumerWidget {
   }
 
   Widget _buildGratitudeSection(WidgetRef ref, DraftJournalEntry draft) {
+    final controller = useTextEditingController(text: draft.gratitude);
+
+    // Sync controller with draft state changes
+    useEffect(() {
+      if (controller.text != draft.gratitude) {
+        controller.text = draft.gratitude;
+      }
+      return null;
+    }, [draft.gratitude]);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -221,6 +268,7 @@ class EoDFlowScreen extends HookConsumerWidget {
             borderRadius: BorderRadius.circular(16),
           ),
           child: TextField(
+            controller: controller,
             maxLines: null,
             onChanged: (val) =>
                 ref.read(draftJournalProvider.notifier).setGratitude(val),
@@ -238,8 +286,8 @@ class EoDFlowScreen extends HookConsumerWidget {
               contentPadding: EdgeInsets.zero,
               isCollapsed: true,
               isDense: true,
-              filled: true, // Add this
-              fillColor: Colors.transparent, // Add this
+              filled: true,
+              fillColor: Colors.transparent,
             ),
             style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
           ),
@@ -249,41 +297,14 @@ class EoDFlowScreen extends HookConsumerWidget {
   }
 
   Widget _buildThreeWinsSection(WidgetRef ref, DraftJournalEntry draft) {
-    // Use useEffect with a post-frame callback to avoid modifying during build
-    useEffect(() {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (draft.wins.length < 3) {
-          // Add missing wins after the build is complete
-          for (int i = draft.wins.length; i < 3; i++) {
-            ref
-                .read(draftJournalProvider.notifier)
-                .addWin(
-                  Win(
-                    id: DateTime.now().toString() + i.toString(),
-                    text: '',
-                    isHighlighted: false,
-                  ),
-                );
-          }
-        }
-      });
-      return null;
-    }, [draft.wins.length]);
-
-    // Use existing wins or create temporary ones for display
-    final displayWins = draft.wins.length >= 3
-        ? draft.wins.take(3).toList()
-        : [
-            ...draft.wins,
-            ...List.generate(
-              3 - draft.wins.length,
-              (i) => Win(
-                id: 'temp_${draft.wins.length + i}',
-                text: '',
-                isHighlighted: false,
-              ),
-            ),
-          ];
+    // Create display list with exactly 3 slots
+    final displayWins = List.generate(3, (i) {
+      if (i < draft.wins.length) {
+        return draft.wins[i];
+      } else {
+        return Win(id: 'empty_$i', text: '', isHighlighted: false);
+      }
+    });
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -301,41 +322,34 @@ class EoDFlowScreen extends HookConsumerWidget {
         ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: 3, // Fixed to 3 wins
+          itemCount: 3,
           separatorBuilder: (_, __) => const SizedBox(),
-          /*    Divider(
-            color: AppColors.bgBorderSecondary,
-            height: 1,
-            thickness: 1,
-          ), */
           itemBuilder: (context, index) {
             final win = displayWins[index];
-            final actualWin = index < draft.wins.length
-                ? draft.wins[index]
-                : null;
+            final isExistingWin = index < draft.wins.length;
 
             return _WinCard(
               win: win,
               index: index + 1,
               onToggleHighlight: () {
-                if (actualWin != null) {
+                if (isExistingWin) {
                   ref
                       .read(draftJournalProvider.notifier)
-                      .toggleWinHighlight(actualWin.id);
+                      .toggleWinHighlight(win.id);
                 }
               },
               onTextChanged: (text) {
-                if (actualWin != null) {
+                if (isExistingWin) {
                   ref
                       .read(draftJournalProvider.notifier)
-                      .updateWinText(actualWin.id, text);
-                } else {
-                  // Create a new win if it doesn't exist yet
+                      .updateWinText(win.id, text);
+                } else if (text.isNotEmpty) {
+                  // Only add new win if text is not empty
                   ref
                       .read(draftJournalProvider.notifier)
                       .addWin(
                         Win(
-                          id: DateTime.now().toString() + index.toString(),
+                          id: 'win_${DateTime.now().millisecondsSinceEpoch}_$index',
                           text: text,
                           isHighlighted: false,
                         ),
@@ -350,6 +364,16 @@ class EoDFlowScreen extends HookConsumerWidget {
   }
 
   Widget _buildAffirmationSection(WidgetRef ref, DraftJournalEntry draft) {
+    final controller = useTextEditingController(text: draft.affirmation);
+
+    // Sync controller with draft state changes
+    useEffect(() {
+      if (controller.text != draft.affirmation) {
+        controller.text = draft.affirmation;
+      }
+      return null;
+    }, [draft.affirmation]);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -370,6 +394,7 @@ class EoDFlowScreen extends HookConsumerWidget {
             borderRadius: BorderRadius.circular(16),
           ),
           child: TextField(
+            controller: controller,
             maxLines: null,
             onChanged: (val) =>
                 ref.read(draftJournalProvider.notifier).setAffirmation(val),
@@ -381,14 +406,13 @@ class EoDFlowScreen extends HookConsumerWidget {
               ),
               isCollapsed: true,
               contentPadding: EdgeInsets.zero,
-
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
               disabledBorder: InputBorder.none,
               errorBorder: InputBorder.none,
               focusedErrorBorder: InputBorder.none,
               isDense: true,
-              filled: true, // Add this
+              filled: true,
               fillColor: Colors.transparent,
             ),
             style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
@@ -567,6 +591,16 @@ class EoDFlowScreen extends HookConsumerWidget {
   }
 
   Widget _buildNotesSection(WidgetRef ref, DraftJournalEntry draft) {
+    final controller = useTextEditingController(text: draft.notes);
+
+    // Sync controller with draft state changes
+    useEffect(() {
+      if (controller.text != draft.notes) {
+        controller.text = draft.notes;
+      }
+      return null;
+    }, [draft.notes]);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -587,6 +621,7 @@ class EoDFlowScreen extends HookConsumerWidget {
             borderRadius: BorderRadius.circular(16),
           ),
           child: TextField(
+            controller: controller,
             maxLines: null,
             minLines: 4,
             onChanged: (val) =>
@@ -604,7 +639,7 @@ class EoDFlowScreen extends HookConsumerWidget {
               errorBorder: InputBorder.none,
               focusedErrorBorder: InputBorder.none,
               isDense: true,
-              filled: true, // Add this
+              filled: true,
               fillColor: Colors.transparent,
             ),
             style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),

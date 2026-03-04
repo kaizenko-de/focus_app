@@ -43,6 +43,9 @@ class JournalEntry extends HiveObject {
   @HiveField(11)
   late bool isPerfectDay; // true = all routines & supplements completed
 
+  @HiveField(12)
+  late DateTime eodDate; // normalized local date (YYYY-MM-DD) for upsert logic
+
   JournalEntry({
     required this.id,
     required this.date,
@@ -56,7 +59,8 @@ class JournalEntry extends HiveObject {
     required this.createdAt,
     this.isSubmitted = false,
     this.isPerfectDay = false,
-  });
+    DateTime? eodDate,
+  }) : eodDate = eodDate ?? DateTime(date.year, date.month, date.day);
 
   JournalEntry copyWith({
     String? id,
@@ -71,6 +75,7 @@ class JournalEntry extends HiveObject {
     DateTime? createdAt,
     bool? isSubmitted,
     bool? isPerfectDay,
+    DateTime? eodDate,
   }) {
     return JournalEntry(
       id: id ?? this.id,
@@ -85,6 +90,7 @@ class JournalEntry extends HiveObject {
       createdAt: createdAt ?? this.createdAt,
       isSubmitted: isSubmitted ?? this.isSubmitted,
       isPerfectDay: isPerfectDay ?? this.isPerfectDay,
+      eodDate: eodDate ?? this.eodDate,
     );
   }
 }
@@ -345,6 +351,35 @@ class JournalNotifier extends StateNotifier<AsyncValue<List<JournalEntry>>> {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
+  // Check if entry is editable (today only)
+  bool isEntryEditable(DateTime eodDate) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return _isSameDay(eodDate, today);
+  }
+
+  // Get or upsert entry for today
+  JournalEntry? getExistingEntryForToday() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    try {
+      return journalBox.values.firstWhere((e) => _isSameDay(e.eodDate, today));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Calculate Perfect Day based on completion
+  bool calculateIsPerfectDay(
+    int completedRoutines,
+    int totalRoutines,
+    int completedSupplements,
+    int totalSupplements,
+  ) {
+    return completedRoutines == totalRoutines &&
+        completedSupplements == totalSupplements;
+  }
+
   // Calculate perfect days in current month
   int calculatePerfectDaysCurrentMonth() {
     final now = DateTime.now();
@@ -525,7 +560,7 @@ class DraftJournalNotifier extends StateNotifier<DraftJournalEntry> {
     state = state.copyWith(takenSupplements: updated, hasChanges: true);
   }
 
-  // Save EoD as submitted (immutable) journal entry
+  // Save EoD as submitted (immutable) journal entry with upsert logic
   void submitEoD({required int totalRoutines, required int totalSupplements}) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -535,9 +570,15 @@ class DraftJournalNotifier extends StateNotifier<DraftJournalEntry> {
         state.completedRoutines.length == totalRoutines &&
         state.takenSupplements.length == totalSupplements;
 
+    // Check for existing entry for today (upsert logic)
+    final existingEntry = ref
+        .read(journalProvider.notifier)
+        .getExistingEntryForToday();
+
     final entry = JournalEntry(
-      id: 'entry_${today.millisecondsSinceEpoch}',
+      id: existingEntry?.id ?? 'entry_${today.millisecondsSinceEpoch}',
       date: today,
+      eodDate: today,
       moodIndex: state.moodIndex,
       gratitude: state.gratitude,
       wins: state.wins,
@@ -545,13 +586,27 @@ class DraftJournalNotifier extends StateNotifier<DraftJournalEntry> {
       routineIds: state.completedRoutines.toList(),
       supplementIds: state.takenSupplements.toList(),
       notes: state.notes,
-      createdAt: DateTime.now(),
+      createdAt: existingEntry?.createdAt ?? DateTime.now(),
       isSubmitted: true,
       isPerfectDay: isPerfectDay,
     );
 
     ref.read(journalProvider.notifier).saveJournalEntry(entry);
     reset();
+  }
+
+  // Load existing entry into draft for editing
+  void loadExistingEntry(JournalEntry entry) {
+    state = DraftJournalEntry(
+      moodIndex: entry.moodIndex,
+      gratitude: entry.gratitude,
+      wins: entry.wins,
+      affirmation: entry.affirmation,
+      completedRoutines: Set.from(entry.routineIds),
+      takenSupplements: Set.from(entry.supplementIds),
+      notes: entry.notes,
+      hasChanges: false,
+    );
   }
 
   void reset() {
